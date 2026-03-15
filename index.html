@@ -3,87 +3,839 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BIBLIO.SYS — Galaxie Musicale</title>
+<title>Sound Galaxy Visualizer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:ital,wght@0,300;0,400;0,700;0,900;1,700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black:   #06040F;
+  --white:   #E8E0FF;
+  --violet:  #7B2FFF;
+  --cyan:    #00CFFF;
+  --indigo:  #3D00CC;
+  --magenta: #BF00FF;
+  --display: 'Bebas Neue', sans-serif;
+  --cond:    'Barlow Condensed', sans-serif;
+  --mono:    'Share Tech Mono', monospace;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--cond);
+  overflow-x: hidden;
+}
+
+/* Noise */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  background-size: 256px;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.5;
+}
+
+/* Scan lines */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.07) 3px, rgba(0,0,0,0.07) 4px);
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* ── PAGE TRANSITION OVERLAY ── */
+#transition-overlay {
+  position: fixed; inset: 0;
+  background: var(--black);
+  z-index: 99999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+#transition-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* ══════════════ HERO ══════════════ */
+.hero {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 3fr 5px 1fr 5px 2fr;
+  grid-template-rows: 60px 1fr 1fr 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+.stripe-violet {
+  grid-column: 2; grid-row: 1 / -1;
+  background: var(--violet);
+}
+.stripe-cyan {
+  grid-column: 4; grid-row: 1 / -1;
+  background: var(--cyan);
+}
+
+/* ambient glow behind hero */
+.hero-glow {
+  position: absolute;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(123,47,255,0.18) 0%, transparent 70%);
+  top: -100px; left: -100px;
+  pointer-events: none;
+  animation: glow-drift 8s ease-in-out infinite;
+}
+.hero-glow-2 {
+  position: absolute;
+  width: 400px; height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,207,255,0.12) 0%, transparent 70%);
+  bottom: 50px; right: 10%;
+  pointer-events: none;
+  animation: glow-drift 11s ease-in-out infinite reverse;
+}
+
+/* Top bar */
+.hero-topbar {
+  grid-column: 1 / -1; grid-row: 1;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px;
+  border-bottom: 1px solid rgba(232,224,255,0.08);
+  z-index: 10;
+}
+.hero-topbar-logo {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: rgba(232,224,255,0.3);
+}
+.hero-topbar-nav {
+  display: flex; gap: 32px;
+}
+.hero-topbar-nav a {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(232,224,255,0.3);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color .2s;
+}
+.hero-topbar-nav a:hover { color: var(--cyan); }
+
+/* Title block */
+.hero-title-block {
+  grid-column: 1; grid-row: 2 / 4;
+  padding: 40px 40px 40px 48px;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  position: relative; z-index: 2;
+}
+
+.hero-eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  color: var(--cyan);
+  margin-bottom: 16px;
+  animation: fadeSlideUp .8s .1s ease both;
+}
+
+.hero-h1 {
+  font-family: var(--display);
+  font-size: clamp(72px, 9vw, 136px);
+  line-height: 0.88;
+  letter-spacing: -0.01em;
+  color: var(--white);
+  text-transform: uppercase;
+  animation: fadeSlideUp .8s .2s ease both;
+}
+.hero-h1 .line-outline {
+  display: block;
+  -webkit-text-stroke: 2px var(--cyan);
+  color: transparent;
+}
+.hero-h1 .line-violet {
+  display: block;
+  background: linear-gradient(90deg, var(--violet), var(--magenta));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  margin-top: 24px;
+  font-size: 14px;
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  color: rgba(232,224,255,0.45);
+  max-width: 380px;
+  line-height: 1.75;
+  animation: fadeSlideUp .8s .35s ease both;
+}
+
+/* Middle column */
+.hero-mid {
+  grid-column: 3; grid-row: 2 / 4;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px; z-index: 2;
+}
+.hero-mid-label {
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: rgba(232,224,255,0.2);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+}
+.hero-mid-dot {
+  width: 6px; height: 6px;
+  background: var(--violet);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--violet);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Right column */
+.hero-right {
+  grid-column: 5; grid-row: 2 / 4;
+  padding: 40px 48px 40px 32px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  z-index: 2;
+}
+.hero-right-num {
+  font-family: var(--display);
+  font-size: clamp(56px, 6vw, 96px);
+  line-height: 1;
+  color: rgba(232,224,255,0.05);
+  letter-spacing: -0.02em;
+  align-self: flex-end;
+  animation: fadeSlideUp .8s .4s ease both;
+}
+.hero-right-cta {
+  display: flex; flex-direction: column; gap: 16px;
+  animation: fadeSlideUp .8s .5s ease both;
+}
+
+/* ── CTA PRINCIPAL — See my Galaxy ── */
+.btn-galaxy {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 28px;
+  background: linear-gradient(135deg, var(--violet), var(--indigo));
+  color: var(--white);
+  font-family: var(--display);
+  font-size: 20px;
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform .15s;
+  clip-path: polygon(10px 0%, calc(100% - 10px) 0%, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0% calc(100% - 10px), 0% 10px);
+}
+.btn-galaxy::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(0,207,255,0.25), rgba(191,0,255,0.25));
+  opacity: 0;
+  transition: opacity .2s;
+}
+.btn-galaxy:hover { transform: translate(-2px, -2px); }
+.btn-galaxy:hover::before { opacity: 1; }
+.btn-galaxy-icon {
+  font-size: 16px;
+  animation: orbit 3s linear infinite;
+  display: inline-block;
+}
+.btn-secondary {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(232,224,255,0.3);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color .15s;
+}
+.btn-secondary:hover { color: var(--cyan); }
+
+/* Bottom ticker */
+.hero-bottom {
+  grid-column: 1 / -1; grid-row: 4;
+  display: flex; align-items: center;
+  border-top: 1px solid rgba(232,224,255,0.07);
+  overflow: hidden; z-index: 2;
+}
+.hero-ticker {
+  display: flex; gap: 0;
+  animation: ticker 20s linear infinite;
+  white-space: nowrap;
+}
+.hero-ticker span {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: rgba(232,224,255,0.15);
+  padding: 0 40px;
+  text-transform: uppercase;
+}
+.hero-ticker span.accent { color: var(--violet); }
+
+.hero-bg-letter {
+  position: absolute;
+  bottom: -80px; right: 5%;
+  font-family: var(--display);
+  font-size: 52vw;
+  line-height: 1;
+  color: rgba(123,47,255,0.025);
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+}
+
+/* ══════════════ COLOR BAND ══════════════ */
+.color-band {
+  display: grid;
+  grid-template-columns: 4fr 1fr 2fr 1fr 3fr 2px 1fr;
+  height: 8px;
+}
+.cb-black   { background: var(--black); }
+.cb-violet  { background: var(--violet); }
+.cb-cyan    { background: var(--cyan); }
+.cb-indigo  { background: var(--indigo); }
+.cb-white   { background: rgba(232,224,255,0.5); }
+.cb-magenta { background: var(--magenta); }
+
+/* ══════════════ SECTION GRID ══════════════ */
+.section-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 2px;
+  background: rgba(232,224,255,0.05);
+  padding: 2px;
+}
+
+.grid-cell {
+  background: var(--black);
+  padding: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Cell A — glass */
+.cell-a {
+  grid-column: 1 / 8; grid-row: 1 / 3;
+  padding: 60px;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  min-height: 480px;
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-top: 1px solid rgba(255,255,255,0.15);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 48px rgba(0,0,0,0.5);
+}
+.cell-a::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(0,207,255,0.7) 30%, rgba(123,47,255,0.7) 70%, transparent 100%);
+}
+.cell-a-num {
+  font-family: var(--display);
+  font-size: 200px;
+  line-height: 1;
+  color: rgba(123,47,255,0.06);
+  position: absolute; top: 10px; right: 20px;
+  pointer-events: none;
+}
+.cell-a-tag {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  color: var(--cyan);
+  margin-bottom: 16px;
+  text-transform: uppercase;
+}
+.cell-a-title {
+  font-family: var(--display);
+  font-size: clamp(36px, 4.5vw, 68px);
+  line-height: 0.92;
+  text-transform: uppercase;
+  max-width: 520px;
+  background: linear-gradient(135deg, #ffffff 0%, var(--white) 35%, var(--cyan) 70%, var(--violet) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 18px rgba(0,207,255,0.25));
+}
+.cell-a-body {
+  margin-top: 20px;
+  font-size: 13px; font-weight: 300; line-height: 1.7;
+  color: rgba(232,224,255,0.4);
+  max-width: 400px;
+}
+
+/* Cell B — violet */
+.cell-b {
+  grid-column: 8 / 13; grid-row: 1;
+  background: var(--violet);
+  display: flex; flex-direction: column; justify-content: flex-end;
+  min-height: 240px;
+}
+.cell-b-big {
+  font-family: var(--display);
+  font-size: clamp(56px, 6vw, 100px);
+  line-height: 1; color: rgba(6,4,15,0.7);
+  letter-spacing: -0.02em;
+}
+.cell-b-label {
+  font-family: var(--mono);
+  font-size: 9px; letter-spacing: 0.2em;
+  color: rgba(6,4,15,0.45); text-transform: uppercase; margin-top: 4px;
+}
+
+/* Cell C */
+.cell-c {
+  grid-column: 8 / 10; grid-row: 2;
+  background: #0A0812;
+  border-left: 4px solid var(--cyan);
+}
+.cell-c-title {
+  font-family: var(--display);
+  font-size: 26px; line-height: 1.1;
+  color: var(--white); text-transform: uppercase; margin-bottom: 10px;
+}
+.cell-c-body {
+  font-size: 12px; font-weight: 300; line-height: 1.65;
+  color: rgba(232,224,255,0.35);
+}
+
+/* Cell D — cyan */
+.cell-d {
+  grid-column: 10 / 13; grid-row: 2;
+  background: var(--cyan);
+  display: flex; align-items: flex-end;
+}
+.cell-d-text {
+  font-family: var(--display);
+  font-size: 34px; line-height: 1;
+  color: var(--black); text-transform: uppercase;
+}
+
+/* Cell E — tracklist */
+.cell-e {
+  grid-column: 1 / 6; grid-row: 3;
+  background: #07050E;
+  display: flex; flex-direction: column; justify-content: space-between;
+  min-height: 240px;
+}
+.cell-e-label {
+  font-family: var(--mono);
+  font-size: 9px; letter-spacing: 0.22em;
+  color: rgba(232,224,255,0.2); text-transform: uppercase;
+  margin-bottom: 20px; padding-bottom: 12px;
+  border-bottom: 1px solid rgba(232,224,255,0.06);
+}
+.tracklist { display: flex; flex-direction: column; gap: 0; flex: 1; }
+.track-item {
+  display: flex; align-items: center; gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(232,224,255,0.04);
+  cursor: pointer;
+  transition: padding-left .12s, background .12s;
+}
+.track-item:hover { padding-left: 8px; background: rgba(123,47,255,0.06); }
+.track-num {
+  font-family: var(--mono); font-size: 9px;
+  color: rgba(232,224,255,0.18); width: 20px; flex-shrink: 0;
+}
+.track-name {
+  font-family: var(--cond); font-size: 13px; font-weight: 400;
+  color: var(--white); flex: 1; letter-spacing: 0.04em;
+}
+.track-dur {
+  font-family: var(--mono); font-size: 9px;
+  color: rgba(232,224,255,0.22);
+}
+
+/* Cell F — indigo */
+.cell-f {
+  grid-column: 6 / 9; grid-row: 3;
+  background: var(--indigo);
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.cell-f-num {
+  font-family: var(--display);
+  font-size: clamp(48px, 5.5vw, 84px);
+  line-height: 1; color: rgba(232,224,255,0.85);
+  letter-spacing: -0.02em;
+}
+.cell-f-label {
+  font-family: var(--mono); font-size: 9px;
+  letter-spacing: 0.2em; color: rgba(232,224,255,0.35); text-transform: uppercase;
+}
+
+/* Cell G — CTA GALAXY */
+.cell-g {
+  grid-column: 9 / 13; grid-row: 3;
+  background: linear-gradient(135deg, #0D0620 0%, #150935 100%);
+  display: flex; flex-direction: column; justify-content: space-between;
+  overflow: hidden; position: relative;
+}
+.cell-g-glow {
+  position: absolute;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(123,47,255,0.35) 0%, transparent 70%);
+  top: -50px; right: -50px;
+  pointer-events: none;
+}
+.cell-g-label {
+  font-family: var(--mono);
+  font-size: 9px; letter-spacing: 0.18em;
+  color: rgba(232,224,255,0.3); text-transform: uppercase;
+  position: relative; z-index: 1;
+}
+.cell-g-title {
+  font-family: var(--display);
+  font-size: 28px; color: var(--white);
+  text-transform: uppercase; line-height: 1;
+  position: relative; z-index: 1; margin-bottom: 16px;
+}
+.btn-galaxy-small {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 20px;
+  background: var(--violet);
+  color: var(--white);
+  font-family: var(--display);
+  font-size: 15px; letter-spacing: 0.1em;
+  text-decoration: none; text-transform: uppercase;
+  cursor: pointer; border: none;
+  position: relative; z-index: 1;
+  clip-path: polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px);
+  transition: background .15s;
+  align-self: flex-start;
+}
+.btn-galaxy-small:hover { background: var(--magenta); }
+
+/* ══════════════ FOOTER ══════════════ */
+.footer {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 2fr;
+  gap: 2px;
+  background: rgba(232,224,255,0.05);
+  padding: 2px; margin-top: 2px;
+}
+.footer-cell {
+  background: var(--black);
+  padding: 32px 40px;
+}
+.footer-logo-big {
+  font-family: var(--display);
+  font-size: 44px; color: var(--white);
+  line-height: 1; letter-spacing: -0.01em;
+  background: linear-gradient(135deg, var(--white), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.footer-logo-sub {
+  font-family: var(--mono);
+  font-size: 9px; letter-spacing: 0.2em;
+  color: rgba(232,224,255,0.18); margin-top: 6px; text-transform: uppercase;
+}
+.footer-col-title {
+  font-family: var(--mono);
+  font-size: 9px; letter-spacing: 0.2em;
+  color: rgba(232,224,255,0.2); text-transform: uppercase;
+  margin-bottom: 16px; padding-bottom: 8px;
+  border-bottom: 1px solid rgba(232,224,255,0.06);
+}
+.footer-links { display: flex; flex-direction: column; gap: 8px; }
+.footer-links a {
+  font-family: var(--cond);
+  font-size: 14px; font-weight: 400;
+  color: rgba(232,224,255,0.4);
+  text-decoration: none; letter-spacing: 0.05em;
+  transition: color .15s;
+}
+.footer-links a:hover { color: var(--cyan); }
+.footer-copy {
+  font-family: var(--mono);
+  font-size: 9px; letter-spacing: 0.12em;
+  color: rgba(232,224,255,0.12); text-transform: uppercase;
+  margin-top: auto; padding-top: 16px;
+}
+.footer-cta-cell {
+  background: linear-gradient(135deg, var(--indigo), var(--violet));
+  padding: 32px 40px;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.footer-cta-title {
+  font-family: var(--display);
+  font-size: 34px; color: var(--white);
+  line-height: 1; text-transform: uppercase; margin-bottom: 16px;
+}
+.btn-white {
+  display: inline-block; padding: 12px 24px;
+  background: rgba(232,224,255,0.12);
+  border: 1px solid rgba(232,224,255,0.25);
+  color: var(--white);
+  font-family: var(--display);
+  font-size: 16px; letter-spacing: 0.1em;
+  text-decoration: none; text-transform: uppercase;
+  transition: background .15s, border-color .15s;
+  align-self: flex-start;
+}
+.btn-white:hover { background: rgba(232,224,255,0.22); border-color: rgba(232,224,255,0.5); }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.3; transform: scale(0.5); }
+}
+@keyframes glow-drift {
+  0%, 100% { transform: translate(0, 0); }
+  50%       { transform: translate(30px, 20px); }
+}
+@keyframes orbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr 5px 1fr; grid-template-rows: 56px 1fr auto 64px; }
+  .stripe-cyan { grid-column: 3; }
+  .hero-title-block { grid-column: 1; grid-row: 2; padding: 32px 24px; }
+  .hero-mid { display: none; }
+  .hero-right { grid-column: 3; grid-row: 2; padding: 32px 24px 32px 16px; }
+  .hero-topbar { padding: 0 20px; }
+  .hero-bottom { grid-column: 1 / -1; }
+  .section-grid { grid-template-columns: 1fr 1fr; }
+  .cell-a { grid-column: 1 / -1; grid-row: 1; min-height: 300px; padding: 32px; }
+  .cell-b { grid-column: 1; grid-row: 2; }
+  .cell-c { grid-column: 2; grid-row: 2; }
+  .cell-d { grid-column: 1; grid-row: 3; }
+  .cell-e { grid-column: 1 / -1; grid-row: 4; }
+  .cell-f { grid-column: 1; grid-row: 5; }
+  .cell-g { grid-column: 2; grid-row: 5; }
+  .footer { grid-template-columns: 1fr 1fr; }
+  .footer-cta-cell { grid-column: 1 / -1; }
+}
+</style>
 </head>
 <body>
 
-<div class="scanline"></div>
-<div id="cursor"><div id="cursor-inner"></div></div>
+<div id="transition-overlay"></div>
 
-<div id="ui">
+<!-- ══ HERO ══ -->
+<section class="hero">
+  <div class="stripe-violet"></div>
+  <div class="stripe-cyan"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-glow-2"></div>
 
-  <!-- TOP BAR -->
-  <header id="top-bar">
-    <div id="top-left">
-      <div id="logo">BIBLIO<span class="logo-dot">.</span>SYS</div>
-      <div id="bios-tag">VER 2.0 // MUSIC EXPLORER</div>
+  <nav class="hero-topbar">
+    <span class="hero-topbar-logo">SGV-001 // MUSIC VISUALIZER</span>
+    <div class="hero-topbar-nav">
+      <a href="#features">Features</a>
+      <a href="#about">About</a>
+      <a href="galaxy.html" id="nav-galaxy">Galaxy →</a>
     </div>
-    <div id="top-center">
-      <div id="search-wrap">
-        <span class="prompt">&gt;_</span>
-        <input type="text" id="search" placeholder="RECHERCHER UN ARTISTE" autocomplete="off" spellcheck="false">
-        <div id="search-results"></div>
-      </div>
-    </div>
-    <div id="top-right">
-      <div class="stat-block">
-        <div class="stat-val" id="stat-artists">—</div>
-        <div class="stat-lbl">ARTISTES</div>
-      </div>
-      <div class="stat-sep">//</div>
-      <div class="stat-block">
-        <div class="stat-val" id="stat-tracks">—</div>
-        <div class="stat-lbl">TITRES</div>
-      </div>
-    </div>
-  </header>
+  </nav>
 
-  <!-- BACK BUTTON -->
-  <button id="back-btn" onclick="backToGalaxy()">
-    <span class="btn-bracket">[</span> ← GALAXIE <span class="btn-bracket">]</span>
-  </button>
+  <div class="hero-title-block">
+    <p class="hero-eyebrow">// 3D · Interactive · Personal Library</p>
+    <h1 class="hero-h1">
+      <span>SOUND</span>
+      <span class="line-outline">GALAXY</span>
+      <span class="line-violet">VISUALIZER</span>
+    </h1>
+    <p class="hero-sub">Explore ta bibliothèque musicale en 3D. Chaque artiste est une planète. Chaque morceau, un point dans l'espace.</p>
+  </div>
 
-  <!-- ARTIST PANEL (bottom center) -->
-  <div id="artist-panel">
-    <div id="artist-panel-inner">
-      <div id="ap-genre"></div>
-      <div id="ap-name"></div>
-      <div id="ap-meta"></div>
+  <div class="hero-mid">
+    <span class="hero-mid-label">325 ARTISTES · 8326 TITRES</span>
+    <div class="hero-mid-dot"></div>
+    <span class="hero-mid-label">THREE.JS · WEBGL · 2025</span>
+  </div>
+
+  <div class="hero-right">
+    <div class="hero-right-num">3D</div>
+    <div class="hero-right-cta">
+      <button class="btn-galaxy" id="btn-enter-galaxy">
+        <span class="btn-galaxy-icon">◎</span>
+        See my Galaxy
+      </button>
+      <a href="#features" class="btn-secondary">↓ Découvrir les features</a>
     </div>
   </div>
 
-  <!-- HINT -->
-  <div id="hint">DRAG · ZOOM · CLICK</div>
+  <div class="hero-bottom">
+    <div class="hero-ticker">
+      <span>325 ARTISTES</span><span class="accent">///</span>
+      <span>8 326 TITRES</span><span class="accent">///</span>
+      <span>THREE.JS WEBGL</span><span class="accent">///</span>
+      <span>FIBONACCI SPHERE</span><span class="accent">///</span>
+      <span>CRYSTAL PLANETS</span><span class="accent">///</span>
+      <span>OSCILLOSCOPE UI</span><span class="accent">///</span>
+      <span>325 ARTISTES</span><span class="accent">///</span>
+      <span>8 326 TITRES</span><span class="accent">///</span>
+      <span>THREE.JS WEBGL</span><span class="accent">///</span>
+      <span>FIBONACCI SPHERE</span><span class="accent">///</span>
+      <span>CRYSTAL PLANETS</span><span class="accent">///</span>
+      <span>OSCILLOSCOPE UI</span><span class="accent">///</span>
+    </div>
+  </div>
 
-  <!-- CORNER DECORATIONS -->
-  <div class="corner corner-tl"></div>
-  <div class="corner corner-tr"></div>
-  <div class="corner corner-bl"></div>
-  <div class="corner corner-br"></div>
+  <div class="hero-bg-letter" aria-hidden="true">G</div>
+</section>
 
+<!-- ══ COLOR BAND ══ -->
+<div class="color-band">
+  <div class="cb-black"></div>
+  <div class="cb-cyan"></div>
+  <div class="cb-violet"></div>
+  <div class="cb-indigo"></div>
+  <div class="cb-white"></div>
+  <div class="cb-magenta"></div>
+  <div class="cb-black"></div>
 </div>
 
-<!-- TOOLTIP -->
-<div id="tooltip">
-  <div id="tt-header">
-    <div id="tt-sig"></div>
-    <div id="tt-status">SIGNAL</div>
+<!-- ══ GRID SECTION ══ -->
+<section class="section-grid" id="features">
+
+  <div class="grid-cell cell-a">
+    <span class="cell-a-num" aria-hidden="true">01</span>
+    <p class="cell-a-tag">// Concept</p>
+    <h2 class="cell-a-title">Ta bibliothèque devient un univers</h2>
+    <p class="cell-a-body">325 artistes représentés comme des planètes cristallines en 3D. Chaque planète porte la couleur de l'artiste, tourne sur elle-même et brille selon le nombre de titres dans ta collection.</p>
   </div>
-  <canvas id="tt-osc" width="280" height="72"></canvas>
-  <div id="tt-footer">
-    <div id="tt-artist"></div>
-    <div id="tt-track"></div>
-    <div id="tt-album"></div>
+
+  <div class="grid-cell cell-b">
+    <p class="cell-b-big">325</p>
+    <p class="cell-b-label">Planètes / artistes</p>
   </div>
+
+  <div class="grid-cell cell-c">
+    <p class="cell-c-title">Anneaux iridescents</p>
+    <p class="cell-c-body">Chaque planète est entourée d'anneaux en verre holographique, aux reflets arc-en-ciel qui changent selon l'angle de vue.</p>
+  </div>
+
+  <div class="grid-cell cell-d">
+    <p class="cell-d-text">WebGL</p>
+  </div>
+
+  <div class="grid-cell cell-e">
+    <p class="cell-e-label">// Features</p>
+    <div class="tracklist">
+      <div class="track-item"><span class="track-num">01</span><span class="track-name">Galaxie 3D interactive — drag, zoom, rotation</span><span class="track-dur">✓</span></div>
+      <div class="track-item"><span class="track-num">02</span><span class="track-name">Clic sur une planète → vue artiste immersive</span><span class="track-dur">✓</span></div>
+      <div class="track-item"><span class="track-num">03</span><span class="track-name">Tooltip oscilloscope sur chaque morceau</span><span class="track-dur">✓</span></div>
+      <div class="track-item"><span class="track-num">04</span><span class="track-name">Recherche rapide par nom d'artiste</span><span class="track-dur">✓</span></div>
+      <div class="track-item"><span class="track-num">05</span><span class="track-name">Planètes cristal low-poly avec wireframe néon</span><span class="track-dur">✓</span></div>
+      <div class="track-item"><span class="track-num">06</span><span class="track-name">Beads nacrés pour chaque titre en orbite</span><span class="track-dur">✓</span></div>
+    </div>
+  </div>
+
+  <div class="grid-cell cell-f">
+    <p class="cell-f-num">8326</p>
+    <p class="cell-f-label">Titres visualisés</p>
+  </div>
+
+  <div class="grid-cell cell-g">
+    <div class="cell-g-glow"></div>
+    <p class="cell-g-label">// Entrer dans la galaxie</p>
+    <p class="cell-g-title">Explorer<br>maintenant</p>
+    <button class="btn-galaxy-small" id="btn-enter-galaxy-2">
+      <span>◎</span> See my Galaxy
+    </button>
+  </div>
+
+</section>
+
+<!-- ══ COLOR BAND ══ -->
+<div class="color-band" style="transform:scaleX(-1)">
+  <div class="cb-black"></div>
+  <div class="cb-magenta"></div>
+  <div class="cb-white"></div>
+  <div class="cb-indigo"></div>
+  <div class="cb-violet"></div>
+  <div class="cb-cyan"></div>
+  <div class="cb-black"></div>
 </div>
 
-<canvas id="c"></canvas>
+<!-- ══ FOOTER ══ -->
+<footer class="footer" id="about">
+  <div class="footer-cell" style="display:flex;flex-direction:column;justify-content:space-between">
+    <div>
+      <p class="footer-logo-big">SGV</p>
+      <p class="footer-logo-sub">Sound Galaxy Visualizer — 2025</p>
+    </div>
+    <p class="footer-copy">Propulsé par Three.js · Données Apple Music</p>
+  </div>
+  <div class="footer-cell">
+    <p class="footer-col-title">// Tech</p>
+    <div class="footer-links">
+      <a href="#">Three.js r128</a>
+      <a href="#">WebGL</a>
+      <a href="#">Apple Music XML</a>
+      <a href="#">Vanilla JS</a>
+    </div>
+  </div>
+  <div class="footer-cell">
+    <p class="footer-col-title">// Design</p>
+    <div class="footer-links">
+      <a href="#">Crystal Planets</a>
+      <a href="#">Iridescent Rings</a>
+      <a href="#">Oscilloscope UI</a>
+      <a href="#">Bead Sprites</a>
+    </div>
+  </div>
+  <div class="footer-cta-cell">
+    <p class="footer-cta-title">Prêt à explorer ?</p>
+    <button class="btn-white" id="btn-enter-galaxy-3">See my Galaxy →</button>
+  </div>
+</footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="data.js"></script>
-<script src="main.js"></script>
+<script>
+function goToGalaxy() {
+  const overlay = document.getElementById('transition-overlay');
+  overlay.classList.add('active');
+  setTimeout(() => {
+    window.location.href = 'galaxy.html';
+  }, 600);
+}
+
+document.getElementById('btn-enter-galaxy').addEventListener('click', goToGalaxy);
+document.getElementById('btn-enter-galaxy-2').addEventListener('click', goToGalaxy);
+document.getElementById('btn-enter-galaxy-3').addEventListener('click', goToGalaxy);
+document.getElementById('nav-galaxy').addEventListener('click', function(e) {
+  e.preventDefault();
+  goToGalaxy();
+});
+</script>
 </body>
 </html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sound Galaxy Visualizer — Galaxy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style-galaxy.css">
+</head>
+<body>
+
+<div class="scanline"></div>
+<div id="cursor"><div id="cursor-inner"></div></div>
+<div id="entry-overlay"></div>
+
+<div id="ui">
+
+  <header id="top-bar">
+    <div id="top-left">
+      <a href="index.html" id="home-link">
+        <div id="logo">SGV<span class="logo-dot">.</span>SYS</div>
+      </a>
+      <div id="bios-tag">SOUND GALAXY VISUALIZER // 3D MUSIC EXPLORER</div>
+    </div>
+    <div id="top-center">
+      <div id="search-wrap">
+        <span class="prompt">&gt;_</span>
+        <input type="text" id="search" placeholder="RECHERCHER UN ARTISTE" autocomplete="off" spellcheck="false">
+        <div id="search-results"></div>
+      </div>
+    </div>
+    <div id="top-right">
+      <div class="stat-block">
+        <div class="stat-val" id="stat-artists">—</div>
+        <div class="stat-lbl">ARTISTES</div>
+      </div>
+      <div class="stat-sep">//</div>
+      <div class="stat-block">
+        <div class="stat-val" id="stat-tracks">—</div>
+        <div class="stat-lbl">TITRES</div>
+      </div>
+    </div>
+  </header>
+
+  <button id="back-btn" onclick="backToGalaxy()">
+    <span class="btn-bracket">[</span> ← GALAXIE <span class="btn-bracket">]</span>
+  </button>
+
+  <a href="index.html" id="home-btn">
+    <span class="btn-bracket">[</span> ⌂ HOME <span class="btn-bracket">]</span>
+  </a>
+
+  <div id="artist-panel">
+    <div id="artist-panel-inner">
+      <div id="ap-genre"></div>
+      <div id="ap-name"></div>
+      <div id="ap-meta"></div>
+    </div>
+  </div>
+
+  <div id="hint">DRAG · ZOOM · CLICK SUR UNE PLANÈTE</div>
+
+  <div class="corner corner-tl"></div>
+  <div class="corner corner-tr"></div>
+  <div class="corner corner-bl"></div>
+  <div class="corner corner-br"></div>
+
+</div>
+
+<div id="tooltip">
+  <div id="tt-header">
+    <div id="tt-sig"></div>
+    <div id="tt-status">SIGNAL</div>
+  </div>
+  <canvas id="tt-osc" width="280" height="72"></canvas>
+  <div id="tt-footer">
+    <div id="tt-artist"></div>
+    <div id="tt-track"></div>
+    <div id="tt-album"></div>
+  </div>
+</div>
+
+<canvas id="c"></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="data.js"></script>
+<script src="main.js"></script>
+<script>
+window.addEventListener('load', () => {
+  const o = document.getElementById('entry-overlay');
+  o.style.opacity = '0';
+  setTimeout(() => { o.style.display = 'none'; }, 700);
+});
+</script>
+</body>
+</html>

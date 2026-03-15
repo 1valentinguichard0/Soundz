@@ -362,7 +362,7 @@ function enterArtist(artist) {
     new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.035, side: THREE.BackSide })
   ));
 
-  // 3 anneaux iridescents à angles différents — style image de référence
+  // nombre random anneaux iridescents à angles différents — style image de référence
   const ringConfigs = Array.from({ length: 2 + Math.floor(Math.random() * 4) }, () => ({
   radius: R * (1.35 + Math.random() * 0.5),
   tube:   R * (0.06 + Math.random() * 0.08),
