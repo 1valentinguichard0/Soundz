@@ -84,7 +84,28 @@
 <canvas id="c"></canvas>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="data.js"></script>
+<script>
+// Charger data.js seulement si pas de données importées en session
+(function() {
+  const raw = sessionStorage.getItem('sgv_data');
+  if (raw) {
+    try {
+      window.MUSIC_DATA = JSON.parse(raw);
+      sessionStorage.removeItem('sgv_data');
+      console.log('SGV: données importées chargées —', window.MUSIC_DATA.length, 'artistes');
+    } catch(e) {
+      console.warn('SGV: erreur sessionStorage, fallback data.js');
+      window.MUSIC_DATA = null;
+    }
+  }
+})();
+</script>
+<script>
+// Injecter data.js dynamiquement seulement si MUSIC_DATA n'est pas défini
+if (!window.MUSIC_DATA) {
+  document.write('<script src="data.js"><\/script>');
+}
+</script>
 <script src="main.js"></script>
 <script>
 window.addEventListener('load', () => {

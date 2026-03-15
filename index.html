@@ -644,6 +644,200 @@ body::before {
   .footer { grid-template-columns: 1fr 1fr; }
   .footer-cta-cell { grid-column: 1 / -1; }
 }
+
+/* ══════════════ IMPORT MODAL ══════════════ */
+#import-modal {
+  position: fixed; inset: 0;
+  background: rgba(6,4,15,0.96);
+  z-index: 99998;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+}
+#import-modal.open { display: flex; }
+
+.modal-box {
+  width: 100%;
+  max-width: 640px;
+  margin: 20px;
+  border: 1px solid rgba(123,47,255,0.5);
+  border-radius: 4px;
+  background: rgba(10,6,24,0.98);
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 20px 28px 16px;
+  border-bottom: 1px solid rgba(123,47,255,0.3);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.12em;
+  background: linear-gradient(90deg, #E8E0FF, #00CFFF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.modal-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: rgba(232,224,255,0.3);
+  margin-top: 3px;
+}
+.modal-close {
+  background: none; border: none; cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px; color: rgba(232,224,255,0.3);
+  padding: 4px 8px;
+  transition: color .15s;
+}
+.modal-close:hover { color: var(--magenta); }
+
+.modal-body { padding: 24px 28px; }
+
+.import-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.import-option {
+  border: 1px solid rgba(232,224,255,0.1);
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  position: relative;
+  clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0% calc(100% - 8px), 0% 8px);
+}
+.import-option:hover { border-color: rgba(123,47,255,0.6); background: rgba(123,47,255,0.08); }
+.import-option.active { border-color: var(--cyan); background: rgba(0,207,255,0.06); }
+.import-option.mine  { border-color: rgba(0,207,255,0.3); background: rgba(0,207,255,0.04); grid-column: 1 / -1; }
+.import-option.mine:hover { background: rgba(0,207,255,0.1); }
+
+.opt-service {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px; letter-spacing: 0.1em;
+  color: var(--white); margin-bottom: 3px;
+}
+.opt-format {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px; letter-spacing: 0.14em;
+  color: rgba(232,224,255,0.35);
+  text-transform: uppercase;
+}
+.opt-badge {
+  position: absolute; top: 10px; right: 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 8px; letter-spacing: 0.1em;
+  padding: 2px 7px;
+  background: rgba(0,207,255,0.15);
+  color: var(--cyan);
+  border: 1px solid rgba(0,207,255,0.3);
+}
+.opt-badge.violet {
+  background: rgba(123,47,255,0.15);
+  color: #B77FFF;
+  border-color: rgba(123,47,255,0.3);
+}
+
+.import-instructions {
+  display: none;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  background: rgba(232,224,255,0.03);
+  border-left: 2px solid var(--violet);
+}
+.import-instructions.show { display: block; }
+.instr-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px; letter-spacing: 0.16em;
+  color: var(--cyan); margin-bottom: 8px;
+  text-transform: uppercase;
+}
+.instr-steps {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; line-height: 1.9;
+  color: rgba(232,224,255,0.5);
+}
+.instr-steps span { color: rgba(232,224,255,0.8); }
+
+.drop-zone {
+  display: none;
+  border: 1px dashed rgba(123,47,255,0.4);
+  padding: 28px;
+  text-align: center;
+  cursor: pointer;
+  margin-bottom: 18px;
+  transition: border-color .15s, background .15s;
+  position: relative;
+}
+.drop-zone.show { display: block; }
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--cyan);
+  background: rgba(0,207,255,0.04);
+}
+.drop-zone input[type=file] {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  z-index: 10;
+}
+.dz-btn {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 7px 18px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 1px solid rgba(123,47,255,0.5);
+  color: rgba(232,224,255,0.6);
+  background: transparent;
+  cursor: pointer;
+  pointer-events: none;
+}
+.dz-icon {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px; color: rgba(123,47,255,0.4);
+  margin-bottom: 8px;
+}
+.dz-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; letter-spacing: 0.14em;
+  color: rgba(232,224,255,0.4);
+}
+.dz-filename {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px; letter-spacing: 0.08em;
+  color: var(--cyan); margin-top: 6px;
+}
+
+.modal-status {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; letter-spacing: 0.12em;
+  color: rgba(232,224,255,0.3);
+  min-height: 18px; margin-bottom: 14px;
+}
+.modal-status.ok  { color: #00ff9f; }
+.modal-status.err { color: #ff4444; }
+
+.btn-launch {
+  width: 100%; padding: 14px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px; letter-spacing: 0.14em;
+  background: linear-gradient(135deg, var(--violet), var(--indigo));
+  color: var(--white); border: none; cursor: pointer;
+  clip-path: polygon(10px 0%, calc(100% - 10px) 0%, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0% calc(100% - 10px), 0% 10px);
+  transition: opacity .15s;
+  opacity: 0.4; pointer-events: none;
+}
+.btn-launch.ready { opacity: 1; pointer-events: auto; }
+.btn-launch.ready:hover { opacity: 0.85; }
+
 </style>
 </head>
 <body>
@@ -792,7 +986,7 @@ body::before {
   <div class="footer-cell" style="display:flex;flex-direction:column;justify-content:space-between">
     <div>
       <p class="footer-logo-big">SGV</p>
-      <p class="footer-logo-sub">Sound Galaxy Visualizer — 2026</p>
+      <p class="footer-logo-sub">Sound Galaxy Visualizer — 2025</p>
     </div>
     <p class="footer-copy">Propulsé par Three.js · Données Apple Music</p>
   </div>
@@ -820,22 +1014,351 @@ body::before {
   </div>
 </footer>
 
+
+<!-- ══ IMPORT MODAL ══ -->
+<div id="import-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Connecter ta bibliothèque</div>
+        <div class="modal-sub">// Traitement local — aucune donnée envoyée</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕ FERMER</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="import-options">
+        <div class="import-option" onclick="selectService('apple')" id="opt-apple">
+          <div class="opt-service">Apple Music</div>
+          <div class="opt-format">Fichier .xml</div>
+          <div class="opt-badge">NATIF</div>
+        </div>
+        <div class="import-option" onclick="selectService('spotify')" id="opt-spotify">
+          <div class="opt-service">Spotify</div>
+          <div class="opt-format">Fichier .csv via Exportify</div>
+          <div class="opt-badge violet">TIERS</div>
+        </div>
+        <div class="import-option" onclick="selectService('deezer')" id="opt-deezer">
+          <div class="opt-service">Deezer</div>
+          <div class="opt-format">Fichier .csv export données</div>
+          <div class="opt-badge violet">TIERS</div>
+        </div>
+        <div class="import-option mine" onclick="selectService('mine')" id="opt-mine">
+          <div class="opt-service">Utiliser ma bibliothèque ✦</div>
+          <div class="opt-format">data.js déjà chargé · 325 artistes · 8 326 titres</div>
+        </div>
+      </div>
+
+      <div class="import-instructions" id="instr-apple">
+        <div class="instr-title">// Comment exporter depuis Apple Music</div>
+        <div class="instr-steps">
+          1. Ouvre <span>Musique</span> sur Mac<br>
+          2. Menu <span>Fichier → Bibliothèque → Exporter la bibliothèque…</span><br>
+          3. Sauvegarde le fichier <span>.xml</span> sur ton bureau<br>
+          4. Glisse-dépose le fichier ci-dessous
+        </div>
+      </div>
+
+      <div class="import-instructions" id="instr-spotify">
+        <div class="instr-title">// Comment exporter depuis Spotify</div>
+        <div class="instr-steps">
+          1. Va sur <span>exportify.net</span> dans ton navigateur<br>
+          2. Connecte ton compte Spotify<br>
+          3. Clique <span>Export All</span> pour télécharger un .csv par playlist<br>
+          4. Glisse-dépose un des fichiers <span>.csv</span> ci-dessous
+        </div>
+      </div>
+
+      <div class="import-instructions" id="instr-deezer">
+        <div class="instr-title">// Comment exporter depuis Deezer</div>
+        <div class="instr-steps">
+          1. Va sur <span>deezer.com → Paramètres → Mon compte</span><br>
+          2. Section <span>Télécharger mes données</span> → Demander l'export<br>
+          3. Reçois le <span>.zip</span> par email, extrais le fichier <span>.csv</span><br>
+          4. Glisse-dépose le fichier ci-dessous
+        </div>
+      </div>
+
+      <div class="drop-zone" id="drop-zone">
+        <div class="dz-icon">⊕</div>
+        <div class="dz-label">Glisser-déposer le fichier ici</div>
+        <div class="dz-filename" id="dz-filename"></div>
+      </div>
+      <input type="file" id="file-input" accept=".xml,.csv" style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px;">
+      <label for="file-input" id="browse-btn" style="display:none;width:100%;padding:11px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;background:transparent;border:1px solid rgba(123,47,255,0.5);color:rgba(232,224,255,0.7);cursor:pointer;margin-bottom:4px;text-align:center;box-sizing:border-box;">
+        ↑ &nbsp; PARCOURIR LES FICHIERS
+      </label>
+
+      <div class="modal-status" id="modal-status"></div>
+
+      <button class="btn-launch" id="btn-launch" onclick="launchGalaxy()">
+        ◎ &nbsp; LANCER MA GALAXIE
+      </button>
+
+    </div>
+  </div>
+</div>
+
+
 <script>
-function goToGalaxy() {
-  const overlay = document.getElementById('transition-overlay');
-  overlay.classList.add('active');
-  setTimeout(() => {
-    window.location.href = 'galaxy.html';
-  }, 600);
+// ── MODAL STATE ──
+let selectedService = null;
+let parsedData      = null;
+
+function openModal() {
+  document.getElementById('import-modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('import-modal').classList.remove('open');
 }
 
-document.getElementById('btn-enter-galaxy').addEventListener('click', goToGalaxy);
-document.getElementById('btn-enter-galaxy-2').addEventListener('click', goToGalaxy);
-document.getElementById('btn-enter-galaxy-3').addEventListener('click', goToGalaxy);
-document.getElementById('nav-galaxy').addEventListener('click', function(e) {
-  e.preventDefault();
-  goToGalaxy();
+// Boutons "See my Galaxy" → ouvrir le modal
+['btn-enter-galaxy','btn-enter-galaxy-2','btn-enter-galaxy-3'].forEach(id => {
+  document.getElementById(id).addEventListener('click', openModal);
 });
+document.getElementById('nav-galaxy').addEventListener('click', e => { e.preventDefault(); openModal(); });
+
+// ── SERVICE SELECTION ──
+function selectService(svc) {
+  selectedService = svc;
+  parsedData = null;
+  setStatus('');
+  setBtnReady(false);
+
+  ['apple','spotify','deezer','mine'].forEach(s => {
+    document.getElementById('opt-' + s).classList.toggle('active', s === svc);
+  });
+  ['apple','spotify','deezer'].forEach(s => {
+    document.getElementById('instr-' + s).classList.toggle('show', s === svc);
+  });
+
+  const dz = document.getElementById('drop-zone');
+  if (svc === 'mine') {
+    dz.classList.remove('show');
+    document.getElementById('browse-btn').style.display = 'none';
+    document.getElementById('dz-filename').textContent = '';
+    parsedData = null;
+    setStatus('// Bibliothèque data.js prête · 325 artistes · 8 326 titres', 'ok');
+    setBtnReady(true);
+  } else {
+    dz.classList.add('show');
+    document.getElementById('browse-btn').style.display = 'block';
+    document.getElementById('dz-filename').textContent = '';
+    parsedData = null;
+    setBtnReady(false);
+    setStatus('// Sélectionne ton fichier pour continuer');
+  }
+}
+
+// ── FILE DROP ──
+const dropZone  = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const browseBtn = document.getElementById('browse-btn');
+
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('click', () => { /* clic géré par le label browse-btn */ });
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+fileInput.addEventListener('change', function() {
+  if (this.files && this.files[0]) {
+    handleFile(this.files[0]);
+  }
+  // reset pour permettre de re-sélectionner le même fichier
+  setTimeout(() => { this.value = ''; }, 100);
+});
+
+function handleFile(file) {
+  if (!file) return;
+  document.getElementById('dz-filename').textContent = '// ' + file.name;
+  setStatus('// Lecture en cours…');
+  setBtnReady(false);
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    try {
+      let result;
+      if (selectedService === 'apple') {
+        result = parseAppleXML(e.target.result);
+      } else {
+        result = parseSpotifyOrDeezerCSV(e.target.result, selectedService);
+      }
+      if (!result || result.length === 0) {
+        setStatus('// Aucun artiste trouvé — vérifie le format du fichier', 'err');
+        return;
+      }
+      parsedData = result;
+      const total = parsedData.reduce((s,a) => s + a.trackCount, 0);
+      setStatus('// ✓ ' + parsedData.length + ' artistes · ' + total.toLocaleString('fr-FR') + ' titres', 'ok');
+      setBtnReady(true);
+    } catch(err) {
+      setStatus('// Erreur : ' + err.message, 'err');
+    }
+  };
+
+  reader.onerror = function() {
+    setStatus('// Erreur de lecture du fichier', 'err');
+  };
+
+  reader.readAsText(file, 'UTF-8');
+}
+
+// ── PARSERS ──
+const PALETTE = [
+  "#7F77DD","#D85A30","#1D9E75","#EF9F27","#D4537E","#378ADD","#639922",
+  "#993556","#0F6E56","#BA7517","#534AB7","#993C1D","#085041","#854F0B",
+  "#72243E","#5DCAA5","#F0997B","#85B7EB","#97C459","#FAC775","#AFA9EC",
+  "#F5C4B3","#9FE1CB","#C0DD97","#F4C0D1","#D85A30","#1A5FB4","#2D8A4E",
+  "#C4622D","#7B4FA6","#E8593C","#3B8BD4","#4A9E5C","#9B4DCA","#D4A017",
+  "#FF6B6B","#4ECDC4","#45B7D1","#96CEB4","#FFEAA7",
+];
+
+function colorForIndex(i) { return PALETTE[i % PALETTE.length]; }
+
+function parseAppleXML(text) {
+  const parser  = new DOMParser();
+  const doc     = parser.parseFromString(text, 'text/xml');
+  const allDicts = doc.querySelectorAll('plist > dict > dict > dict');
+
+  const artistMap = {};
+
+  allDicts.forEach(track => {
+    const keys = track.querySelectorAll(':scope > key');
+    const vals = {};
+    keys.forEach(k => {
+      const v = k.nextElementSibling;
+      if (v) vals[k.textContent] = v.textContent;
+    });
+    if (!vals['Name'] || !vals['Artist']) return;
+    if (vals['Podcast'] === 'true' || vals['Movie'] === 'true') return;
+
+    const artist = vals['Artist'].trim();
+    const album  = vals['Album']  || 'Unknown';
+    const genre  = vals['Genre']  || 'Music';
+    const year   = vals['Year']   ? parseInt(vals['Year']) : null;
+
+    if (!artistMap[artist]) artistMap[artist] = { tracks: [], albums: new Set(), genre };
+    artistMap[artist].tracks.push({ name: vals['Name'], album, year });
+    artistMap[artist].albums.add(album);
+  });
+
+  return buildArtistArray(artistMap);
+}
+
+function parseSpotifyOrDeezerCSV(text, svc) {
+  // Supprimer le BOM UTF-8 si présent
+  const clean = text.replace(/^\uFEFF/, '');
+  const lines = clean.split('\n').filter(l => l.trim());
+  if (lines.length < 2) throw new Error('Fichier CSV vide ou invalide');
+
+  // Détecter le séparateur (, ou ;)
+  const sep = lines[0].includes(';') && !lines[0].includes(',') ? ';' : ',';
+
+  const header = lines[0].split(sep).map(h => h.replace(/"/g,'').trim().toLowerCase());
+
+  let colTrack, colArtist, colAlbum;
+  if (svc === 'spotify') {
+    colTrack  = header.findIndex(h => h === 'track name');
+    // Exportify: "artist name(s)" — chercher avec ou sans "(s)"
+    colArtist = header.findIndex(h => h.startsWith('artist name'));
+    if (colArtist < 0) colArtist = header.findIndex(h => h === 'artists');
+    if (colArtist < 0) colArtist = header.findIndex(h => h.includes('artist'));
+    colAlbum  = header.findIndex(h => h === 'album name');
+    if (colAlbum < 0) colAlbum = header.findIndex(h => h.includes('album'));
+  } else { // deezer
+    colTrack  = header.findIndex(h => h === 'title' || h === 'track' || h === 'song title');
+    colArtist = header.findIndex(h => h === 'artist' || h.startsWith('artist'));
+    colAlbum  = header.findIndex(h => h === 'album' || h.includes('album'));
+  }
+
+  if (colArtist < 0 || colTrack < 0)
+    throw new Error(`Colonnes non trouvées. Headers détectés : ${header.slice(0,6).join(' | ')}`);
+
+  const artistMap = {};
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols   = splitCSV(lines[i], sep);
+    const artist = (cols[colArtist] || '').replace(/"/g,'').trim();
+    const track  = (cols[colTrack]  || '').replace(/"/g,'').trim();
+    const album  = colAlbum >= 0 ? (cols[colAlbum] || '').replace(/"/g,'').trim() : 'Unknown';
+    if (!artist || !track) continue;
+
+    // Spotify: "Artist1;Artist2" ou "Artist1, Artist2" — prendre le premier
+    const mainArtist = artist.split(/[;,]/)[0].trim();
+    if (!artistMap[mainArtist]) artistMap[mainArtist] = { tracks: [], albums: new Set(), genre: 'Music' };
+    artistMap[mainArtist].tracks.push({ name: track, album, year: null });
+    artistMap[mainArtist].albums.add(album);
+  }
+
+  return buildArtistArray(artistMap);
+}
+
+function splitCSV(line, sep = ',') {
+  const result = []; let cur = ''; let inQ = false;
+  for (const c of line) {
+    if (c === '"') { inQ = !inQ; continue; }
+    if (c === sep && !inQ) { result.push(cur); cur = ''; continue; }
+    cur += c;
+  }
+  result.push(cur);
+  return result;
+}
+
+function buildArtistArray(artistMap) {
+  const sorted = Object.entries(artistMap)
+    .filter(([,v]) => v.tracks.length >= 3)
+    .sort((a,b) => b[1].tracks.length - a[1].tracks.length);
+
+  return sorted.map(([name, data], i) => ({
+    name,
+    color:      colorForIndex(i),
+    genre:      data.genre,
+    trackCount: data.tracks.length,
+    albums:     [...data.albums].slice(0, 10),
+    tracks:     data.tracks.slice(0, 100),
+  }));
+}
+
+// ── LAUNCH ──
+function launchGalaxy() {
+  if (selectedService === 'mine') {
+    // Utiliser data.js existant — transition directe
+    doTransition();
+    return;
+  }
+  if (!parsedData || !parsedData.length) return;
+
+  // Stocker les données parsées dans sessionStorage pour galaxy.html
+  try {
+    sessionStorage.setItem('sgv_data', JSON.stringify(parsedData));
+  } catch(e) {
+    // Si trop gros pour sessionStorage, on tronque à 200 artistes
+    const trimmed = parsedData.slice(0, 200).map(a => ({...a, tracks: a.tracks.slice(0, 50)}));
+    sessionStorage.setItem('sgv_data', JSON.stringify(trimmed));
+  }
+  sessionStorage.setItem('sgv_source', selectedService);
+  doTransition();
+}
+
+function doTransition() {
+  const overlay = document.getElementById('transition-overlay');
+  overlay.classList.add('active');
+  setTimeout(() => { window.location.href = 'galaxy.html'; }, 600);
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('modal-status');
+  el.textContent = msg;
+  el.className = 'modal-status' + (type ? ' ' + type : '');
+}
+function setBtnReady(ready) {
+  document.getElementById('btn-launch').classList.toggle('ready', ready);
+}
 </script>
 </body>
 </html>
