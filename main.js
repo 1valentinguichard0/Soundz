@@ -102,43 +102,66 @@ function hexToRgb(hex) {
   return { r, g, b };
 }
 
-// ── BEAD SPRITE TEXTURE ──
-// Génère une texture canvas simulant une petite sphère chromée/nacrée
-// avec halo doux + reflet spéculaire — comme les beads de la vidéo CGR
-function makeBeadTexture(hexColor) {
-  const size = 64;
+// ── STAR SPRITE TEXTURE ──
+// Étoile 4 branches chromée — style octaèdre/diamant de la référence
+function makeStarTexture(hexColor) {
+  const size = 128;
   const cv   = document.createElement('canvas');
   cv.width   = size; cv.height = size;
   const ctx  = cv.getContext('2d');
-  const cx   = size / 2, cy = size / 2, r = size * 0.38;
+  const cx   = size / 2, cy = size / 2;
 
-  // Halo extérieur doux
-  const halo = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, size * 0.5);
-  halo.addColorStop(0,   'rgba(255,255,255,0.18)');
-  halo.addColorStop(0.5, 'rgba(255,255,255,0.04)');
-  halo.addColorStop(1,   'rgba(255,255,255,0)');
+  ctx.clearRect(0, 0, size, size);
+
+  const r = parseInt(hexColor.slice(1,3),16);
+  const g = parseInt(hexColor.slice(3,5),16);
+  const b = parseInt(hexColor.slice(5,7),16);
+
+  // Halo extérieur rayonnant
+  const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.5);
+  halo.addColorStop(0,    `rgba(${r},${g},${b},0.35)`);
+  halo.addColorStop(0.35, `rgba(${r},${g},${b},0.08)`);
+  halo.addColorStop(1,    `rgba(${r},${g},${b},0)`);
   ctx.fillStyle = halo;
   ctx.fillRect(0, 0, size, size);
 
-  // Corps principal — sphère nacrée
-  const body = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.05, cx, cy, r);
-  body.addColorStop(0,    'rgba(255,255,255,0.95)');  // reflet spéculaire
-  body.addColorStop(0.25, 'rgba(220,235,255,0.85)');  // nacré froid
-  body.addColorStop(0.6,  hexToRgbaString(hexColor, 0.7));
-  body.addColorStop(1,    hexToRgbaString(hexColor, 0.15));
+  // Étoile 4 branches — forme diamant/octaèdre vue de face
+  // Branches longues haut/bas, branches courtes gauche/droite
+  const longR  = size * 0.44;   // longueur branches principale
+  const shortR = size * 0.18;   // longueur branches transversales
+  const waist  = size * 0.025;  // rétrécissement au centre
+
   ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = body;
+  ctx.moveTo(cx,           cy - longR);          // top
+  ctx.quadraticCurveTo(cx + waist, cy, cx + shortR, cy);  // top → right
+  ctx.quadraticCurveTo(cx, cy + waist, cx,       cy + longR); // right → bottom
+  ctx.quadraticCurveTo(cx - waist, cy, cx - shortR, cy);  // bottom → left
+  ctx.quadraticCurveTo(cx, cy - waist, cx,       cy - longR); // left → top
+  ctx.closePath();
+
+  // Fill chromé — dégradé diagonal blanc → couleur → sombre
+  const chrome = ctx.createLinearGradient(cx - shortR, cy - longR, cx + shortR, cy + longR);
+  chrome.addColorStop(0,    'rgba(255,255,255,0.98)');
+  chrome.addColorStop(0.2,  'rgba(220,235,255,0.9)');
+  chrome.addColorStop(0.45, `rgba(${r},${g},${b},0.85)`);
+  chrome.addColorStop(0.65, `rgba(${Math.floor(r*0.4)},${Math.floor(g*0.4)},${Math.floor(b*0.4)},0.9)`);
+  chrome.addColorStop(0.8,  `rgba(${r},${g},${b},0.7)`);
+  chrome.addColorStop(1,    'rgba(255,255,255,0.6)');
+  ctx.fillStyle = chrome;
   ctx.fill();
 
-  // Petit reflet secondaire (bas-droit)
-  const spec2 = ctx.createRadialGradient(cx + r*0.3, cy + r*0.3, 0, cx + r*0.3, cy + r*0.3, r*0.3);
-  spec2.addColorStop(0,   'rgba(255,255,255,0.25)');
-  spec2.addColorStop(1,   'rgba(255,255,255,0)');
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = spec2;
+  // Reflet central brillant
+  const spot = ctx.createRadialGradient(cx - size*0.06, cy - size*0.1, 0, cx, cy, size * 0.2);
+  spot.addColorStop(0,   'rgba(255,255,255,0.9)');
+  spot.addColorStop(0.4, 'rgba(255,255,255,0.2)');
+  spot.addColorStop(1,   'rgba(255,255,255,0)');
+  ctx.fillStyle = spot;
   ctx.fill();
+
+  // Fine ligne de contour lumineuse
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth   = 0.8;
+  ctx.stroke();
 
   return new THREE.CanvasTexture(cv);
 }
@@ -150,8 +173,7 @@ function hexToRgbaString(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-// Texture bead blanche pour la vue artiste (points de musiques)
-const beadTexWhite = makeBeadTexture('#a0c8ff');
+const beadTexWhite = makeStarTexture('#a0c8ff');
 
 // ── CRYSTAL PLANET GEOMETRY ──
 // Crée une sphère low-poly dont chaque face est déplacée
@@ -201,60 +223,99 @@ function makeCrystalMat(col) {
   });
 }
 
-// ── IRIDESCENT TORUS RING ──
-// Simule le verre holographique : tore avec 3 couches superposées
-// (base sombre transparente + iridescence arc-en-ciel + reflet blanc)
-function makeIridescentRing(radius, tubeR, col, tiltX, tiltZ) {
+// ── VINYL DISC ──
+function makeVinylDisc(outerR, col, tiltX, tiltZ) {
   const group = new THREE.Group();
   group.rotation.x = tiltX;
   group.rotation.z = tiltZ;
 
-  // Couche 1 — corps principal semi-transparent
-  group.add(new THREE.Mesh(
-    new THREE.TorusGeometry(radius, tubeR, 32, 128),
-    new THREE.MeshStandardMaterial({
-      color:       col.clone().multiplyScalar(0.4),
-      emissive:    col.clone().multiplyScalar(0.1),
-      roughness:   0.08,
-      metalness:   0.6,
-      transparent: true,
-      opacity:     0.55,
-      side:        THREE.DoubleSide,
-    })
-  ));
+  const GROOVES     = 9;
+  const innerR      = outerR * 0.18;
+  const grooveStart = innerR * 1.6;
+  const grooveEnd   = outerR * 0.96;
+  const Z           = 0.001;
 
-  // Couche 2 — iridescence arc-en-ciel (couleurs décalées HSL)
-  const iriColors = [0, 0.08, 0.16, 0.28, 0.45, 0.6, 0.75];
-  iriColors.forEach((hShift, idx) => {
-    const iriCol = col.clone().offsetHSL(hShift, 0.3, 0.15);
-    group.add(new THREE.Mesh(
-      new THREE.TorusGeometry(radius, tubeR * 0.82, 16, 128),
-      new THREE.MeshStandardMaterial({
-        color:       iriCol,
-        emissive:    iriCol.clone().multiplyScalar(0.25),
-        roughness:   0.05,
-        metalness:   0.9,
-        transparent: true,
-        opacity:     0.12,
-        side:        THREE.DoubleSide,
-        depthWrite:  false,
-      })
-    ));
+  // Corps principal — face avant
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(0x080810), emissive: col.clone().multiplyScalar(0.04),
+    roughness: 0.05, metalness: 0.95, side: THREE.FrontSide,
+    transparent: true, opacity: 0.88, depthWrite: true,
+    polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
   });
+  group.add(new THREE.Mesh(new THREE.RingGeometry(innerR * 0.5, outerR, 128), bodyMat));
+  // Face arrière identique (miroir)
+  const bodyBack = new THREE.Mesh(new THREE.RingGeometry(innerR * 0.5, outerR, 128), bodyMat.clone());
+  bodyBack.rotation.y = Math.PI;
+  group.add(bodyBack);
 
-  // Couche 3 — reflet blanc sur le dessus (highlight spéculaire)
-  group.add(new THREE.Mesh(
-    new THREE.TorusGeometry(radius, tubeR * 0.35, 16, 128),
-    new THREE.MeshStandardMaterial({
-      color:       new THREE.Color(1, 1, 1),
-      roughness:   0.0,
-      metalness:   1.0,
-      transparent: true,
-      opacity:     0.18,
-      side:        THREE.DoubleSide,
-      depthWrite:  false,
+  // Sillons concentriques
+  for (let g = 0; g < GROOVES; g++) {
+    const t = g / (GROOVES - 1);
+    const gr = grooveStart + t * (grooveEnd - grooveStart);
+    const mesh = new THREE.Mesh(
+      new THREE.RingGeometry(gr - outerR * 0.006, gr + outerR * 0.006, 128),
+      new THREE.MeshBasicMaterial({
+        color: col.clone().offsetHSL(t * 0.15, 0.1, 0),
+        side: THREE.DoubleSide, transparent: true, opacity: 0.55 + t * 0.3,
+        depthWrite: false, polygonOffset: true,
+        polygonOffsetFactor: -(g + 2), polygonOffsetUnits: -(g + 2),
+      })
+    );
+    mesh.position.z = Z * (g + 1);
+    group.add(mesh);
+  }
+
+  // Reflets
+  for (let arc = 0; arc < 2; arc++) {
+    const arcR = grooveStart + (grooveEnd - grooveStart) * (0.3 + arc * 0.4);
+    const mesh = new THREE.Mesh(
+      new THREE.RingGeometry(arcR, arcR + outerR * 0.025, 128, 1, Math.PI * (0.15 + arc * 0.3), Math.PI * 0.4),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color(1, 1, 1), side: THREE.DoubleSide,
+        transparent: true, opacity: 0.12, depthWrite: false,
+        polygonOffset: true, polygonOffsetFactor: -(GROOVES + arc + 2), polygonOffsetUnits: -(GROOVES + arc + 2),
+      })
+    );
+    mesh.position.z = Z * (GROOVES + arc + 1);
+    group.add(mesh);
+  }
+
+  // Label central — même couleur recto/verso
+  const labelMat = new THREE.MeshStandardMaterial({
+    color: col.clone().multiplyScalar(0.5), emissive: col.clone().multiplyScalar(0.35),
+    roughness: 0.3, metalness: 0.6, side: THREE.FrontSide,
+    polygonOffset: true, polygonOffsetFactor: -(GROOVES + 4), polygonOffsetUnits: -(GROOVES + 4),
+  });
+  const labelMesh = new THREE.Mesh(new THREE.CircleGeometry(innerR, 64), labelMat);
+  labelMesh.position.z = Z * (GROOVES + 3);
+  group.add(labelMesh);
+  const labelBack = new THREE.Mesh(new THREE.CircleGeometry(innerR, 64), labelMat.clone());
+  labelBack.position.z = -Z * (GROOVES + 3);
+  labelBack.rotation.y = Math.PI;
+  group.add(labelBack);
+
+  // Trou central
+  const holeMesh = new THREE.Mesh(
+    new THREE.CircleGeometry(innerR * 0.18, 32),
+    new THREE.MeshBasicMaterial({
+      color: new THREE.Color(0x04040d), side: THREE.DoubleSide, depthWrite: true,
+      polygonOffset: true, polygonOffsetFactor: -(GROOVES + 5), polygonOffsetUnits: -(GROOVES + 5),
     })
-  ));
+  );
+  holeMesh.position.z = Z * (GROOVES + 4);
+  group.add(holeMesh);
+
+  // Bord extérieur
+  const edgeMesh = new THREE.Mesh(
+    new THREE.RingGeometry(outerR * 0.975, outerR, 128),
+    new THREE.MeshBasicMaterial({
+      color: col, side: THREE.DoubleSide, transparent: true, opacity: 0.7,
+      depthWrite: false, polygonOffset: true,
+      polygonOffsetFactor: -(GROOVES + 6), polygonOffsetUnits: -(GROOVES + 6),
+    })
+  );
+  edgeMesh.position.z = Z * (GROOVES + 5);
+  group.add(edgeMesh);
 
   return group;
 }
@@ -289,15 +350,10 @@ MUSIC_DATA.forEach((artist, i) => {
   });
   sphere.add(new THREE.Mesh(glowGeo, glowMat));
 
-  // ── Anneau iridescent (tore en verre holographique) ──
-  const ringTiltX = Math.PI * 0.5 + (Math.random() - 0.5) * 0.5;
-  const ringTiltZ = (Math.random() - 0.5) * 0.5;
-  const iriRing = makeIridescentRing(
-    planetR * 1.7,          // rayon du tore
-    planetR * 0.18,         // épaisseur du tube
-    col, ringTiltX, ringTiltZ
-  );
-  sphere.add(iriRing);
+  // ── Vinyle cyberpunk (disque avec sillons) ──
+  const ringTiltX = Math.PI * 0.5 + (Math.random() - 0.5) * 0.35;
+  const ringTiltZ = (Math.random() - 0.5) * 0.35;
+  sphere.add(makeVinylDisc(planetR * 2.0, col, ringTiltX, ringTiltZ));
 
   // ── Satellite beads (tracks preview) ──
   const satPos = [];
@@ -310,7 +366,7 @@ MUSIC_DATA.forEach((artist, i) => {
   }
   const satGeo = new THREE.BufferGeometry();
   satGeo.setAttribute('position', new THREE.Float32BufferAttribute(satPos, 3));
-  const beadTex = makeBeadTexture(artist.color);
+  const beadTex = makeStarTexture(artist.color);
   sphere.add(new THREE.Points(satGeo, new THREE.PointsMaterial({
     map:          beadTex,
     size:         0.55,
@@ -362,17 +418,13 @@ function enterArtist(artist) {
     new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.035, side: THREE.BackSide })
   ));
 
-  // nombre random anneaux iridescents à angles différents — style image de référence
-  const ringConfigs = Array.from({ length: 2 + Math.floor(Math.random() * 4) }, () => ({
-  radius: R * (1.35 + Math.random() * 0.5),
-  tube:   R * (0.06 + Math.random() * 0.08),
-  tx:     Math.random() * Math.PI,
-  tz:     Math.random() * Math.PI,
-}));
-  
-  ringConfigs.forEach(cfg => {
-    artistGroup.add(makeIridescentRing(cfg.radius, cfg.tube, col, cfg.tx, cfg.tz));
-  });
+  // Disques vinyle cyberpunk à angles variés
+  const vinylCount = 2 + Math.floor(Math.random() * 2);
+  for (let v = 0; v < vinylCount; v++) {
+    const tiltX = Math.PI * 0.08 + v * Math.PI * 0.22 + (Math.random() - 0.5) * 0.2;
+    const tiltZ = (Math.random() - 0.5) * 0.4;
+    artistGroup.add(makeVinylDisc(R * (1.9 + v * 0.25) * (1.0 - v * 0.08), col, tiltX, tiltZ));
+  }
 
   // Track beads — sprite nacré avec couleur artiste
   const tPos = [], tColors = [];
@@ -391,13 +443,13 @@ function enterArtist(artist) {
   tGeo.setAttribute('color',    new THREE.Float32BufferAttribute(tColors, 3));
 
   // Texture bead teintée couleur artiste
-  const artistBeadTex = makeBeadTexture(artist.color);
+  const artistBeadTex = makeStarTexture(artist.color);
   artistTrackPoints = new THREE.Points(tGeo, new THREE.PointsMaterial({
     map:          artistBeadTex,
-    size:         1.4,
+    size:         2.2,
     vertexColors: true,
     transparent:  true,
-    opacity:      0.92,
+    opacity:      0.95,
     sizeAttenuation: true,
     depthWrite:   false,
     alphaTest:    0.01,
@@ -515,7 +567,7 @@ function showTooltip(data, mx, my) {
   document.getElementById('tt-sig').textContent  = `SIG:${data.track.length.toString(16).toUpperCase().padStart(4,'0')}`;
   document.getElementById('tt-artist').textContent = data.artist;
   document.getElementById('tt-track').textContent  = data.track;
-  document.getElementById('tt-album').textContent  = data.album + (data.year ? ` · ${data.year}` : '');
+  document.getElementById('tt-album').textContent  = data.album + (data.year ? ` · ${data.year}` : '') + ' ↗ YouTube';
 
   const osc   = document.getElementById('tt-osc');
   const waves = buildWaveParams(data.track);
@@ -605,6 +657,15 @@ canvas.addEventListener('mouseleave', () => { isDragging = false; hideTooltip();
 canvas.addEventListener('click', () => {
   if (isDragging) return;
   raycaster.setFromCamera(mouse, camera);
+  if (mode === 'artist' && artistTrackPoints) {
+    const hits = raycaster.intersectObject(artistTrackPoints);
+    if (hits.length > 0 && artistTrackData[hits[0].index]) {
+      const d = artistTrackData[hits[0].index];
+      const q = encodeURIComponent(`${d.artist} ${d.track}`);
+      window.open(`https://www.youtube.com/results?search_query=${q}`, '_blank');
+      return;
+    }
+  }
   if (mode === 'galaxy') {
     const hits = raycaster.intersectObjects(planetMeshes, false);
     if (hits.length > 0) enterArtist(hits[0].object.userData.artist);
