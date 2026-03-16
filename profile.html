@@ -272,11 +272,13 @@ async function init() {
     '// Membre depuis ' + new Date(user.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
   // Charger la galaxie depuis Supabase
-  const { data: galaxyRow } = await _sb
+  const { data: galaxyRow, error: galaxyErr } = await _sb
     .from('galaxies')
     .select('artist_count, track_count, service, data, updated_at')
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
+
+  if (galaxyErr) console.warn('Galaxy load error:', galaxyErr);
 
   if (galaxyRow) {
     document.getElementById('gs-artists').textContent = galaxyRow.artist_count.toLocaleString('fr-FR');

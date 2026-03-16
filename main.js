@@ -89,7 +89,10 @@ function fibonacciSphere(n, r) {
   return pts;
 }
 
-const positions = fibonacciSphere(MUSIC_DATA.length, GALAXY_R);
+// A — Limiter à 500 artistes (les plus écoutés)
+const GALAXY_DATA = MUSIC_DATA.slice(0, 500);
+
+const positions = fibonacciSphere(GALAXY_DATA.length, GALAXY_R);
 
 // ── PLANET BUILDER ──
 const planetMeshes = [];
@@ -102,22 +105,20 @@ function hexToRgb(hex) {
   return { r, g, b };
 }
 
-// ── STAR SPRITE TEXTURE ──
-// Étoile 4 branches chromée — style octaèdre/diamant de la référence
+// ── STAR SPRITE TEXTURE — étoile 4 branches chromée ──
 function makeStarTexture(hexColor) {
   const size = 128;
   const cv   = document.createElement('canvas');
   cv.width   = size; cv.height = size;
   const ctx  = cv.getContext('2d');
   const cx   = size / 2, cy = size / 2;
-
   ctx.clearRect(0, 0, size, size);
 
   const r = parseInt(hexColor.slice(1,3),16);
   const g = parseInt(hexColor.slice(3,5),16);
   const b = parseInt(hexColor.slice(5,7),16);
 
-  // Halo extérieur rayonnant
+  // Halo
   const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.5);
   halo.addColorStop(0,    `rgba(${r},${g},${b},0.35)`);
   halo.addColorStop(0.35, `rgba(${r},${g},${b},0.08)`);
@@ -125,32 +126,29 @@ function makeStarTexture(hexColor) {
   ctx.fillStyle = halo;
   ctx.fillRect(0, 0, size, size);
 
-  // Étoile 4 branches — forme diamant/octaèdre vue de face
-  // Branches longues haut/bas, branches courtes gauche/droite
-  const longR  = size * 0.44;   // longueur branches principale
-  const shortR = size * 0.18;   // longueur branches transversales
-  const waist  = size * 0.025;  // rétrécissement au centre
+  // Étoile 4 branches
+  const longR  = size * 0.44;
+  const shortR = size * 0.18;
+  const waist  = size * 0.025;
 
   ctx.beginPath();
-  ctx.moveTo(cx,           cy - longR);          // top
-  ctx.quadraticCurveTo(cx + waist, cy, cx + shortR, cy);  // top → right
-  ctx.quadraticCurveTo(cx, cy + waist, cx,       cy + longR); // right → bottom
-  ctx.quadraticCurveTo(cx - waist, cy, cx - shortR, cy);  // bottom → left
-  ctx.quadraticCurveTo(cx, cy - waist, cx,       cy - longR); // left → top
+  ctx.moveTo(cx, cy - longR);
+  ctx.quadraticCurveTo(cx + waist, cy, cx + shortR, cy);
+  ctx.quadraticCurveTo(cx, cy + waist, cx, cy + longR);
+  ctx.quadraticCurveTo(cx - waist, cy, cx - shortR, cy);
+  ctx.quadraticCurveTo(cx, cy - waist, cx, cy - longR);
   ctx.closePath();
 
-  // Fill chromé — dégradé diagonal blanc → couleur → sombre
   const chrome = ctx.createLinearGradient(cx - shortR, cy - longR, cx + shortR, cy + longR);
   chrome.addColorStop(0,    'rgba(255,255,255,0.98)');
   chrome.addColorStop(0.2,  'rgba(220,235,255,0.9)');
   chrome.addColorStop(0.45, `rgba(${r},${g},${b},0.85)`);
   chrome.addColorStop(0.65, `rgba(${Math.floor(r*0.4)},${Math.floor(g*0.4)},${Math.floor(b*0.4)},0.9)`);
-  chrome.addColorStop(0.8,  `rgba(${r},${g},${b},0.7)`);
   chrome.addColorStop(1,    'rgba(255,255,255,0.6)');
   ctx.fillStyle = chrome;
   ctx.fill();
 
-  // Reflet central brillant
+  // Reflet central
   const spot = ctx.createRadialGradient(cx - size*0.06, cy - size*0.1, 0, cx, cy, size * 0.2);
   spot.addColorStop(0,   'rgba(255,255,255,0.9)');
   spot.addColorStop(0.4, 'rgba(255,255,255,0.2)');
@@ -158,7 +156,6 @@ function makeStarTexture(hexColor) {
   ctx.fillStyle = spot;
   ctx.fill();
 
-  // Fine ligne de contour lumineuse
   ctx.strokeStyle = 'rgba(255,255,255,0.5)';
   ctx.lineWidth   = 0.8;
   ctx.stroke();
@@ -174,6 +171,84 @@ function hexToRgbaString(hex, alpha) {
 }
 
 const beadTexWhite = makeStarTexture('#a0c8ff');
+
+// ── VINYL DISC — disque avec sillons, anti z-fighting ──
+function makeVinylDisc(outerR, col, tiltX, tiltZ) {
+  const group = new THREE.Group();
+  group.rotation.x = tiltX;
+  group.rotation.z = tiltZ;
+
+  const GROOVES = 9;
+  const innerR  = outerR * 0.18;
+  const grooveStart = innerR * 1.6;
+  const grooveEnd   = outerR * 0.96;
+  const Z = 0.001;
+
+  // Corps noir brillant
+  group.add(new THREE.Mesh(
+    new THREE.RingGeometry(innerR * 0.5, outerR, 96),
+    new THREE.MeshStandardMaterial({
+      color: new THREE.Color(0x080810), emissive: col.clone().multiplyScalar(0.04),
+      roughness: 0.05, metalness: 0.95, side: THREE.DoubleSide,
+      transparent: true, opacity: 0.88, depthWrite: true,
+      polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+    })
+  ));
+
+  // Sillons
+  for (let g = 0; g < GROOVES; g++) {
+    const t  = g / (GROOVES - 1);
+    const gr = grooveStart + t * (grooveEnd - grooveStart);
+    const mesh = new THREE.Mesh(
+      new THREE.RingGeometry(gr - outerR * 0.006, gr + outerR * 0.006, 96),
+      new THREE.MeshBasicMaterial({
+        color: col.clone().offsetHSL(t * 0.15, 0.1, 0),
+        side: THREE.DoubleSide, transparent: true, opacity: 0.55 + t * 0.3,
+        depthWrite: false, polygonOffset: true,
+        polygonOffsetFactor: -(g + 2), polygonOffsetUnits: -(g + 2),
+      })
+    );
+    mesh.position.z = Z * (g + 1);
+    group.add(mesh);
+  }
+
+  // Label central
+  const labelMesh = new THREE.Mesh(
+    new THREE.CircleGeometry(innerR, 48),
+    new THREE.MeshStandardMaterial({
+      color: col.clone().multiplyScalar(0.5), emissive: col.clone().multiplyScalar(0.35),
+      roughness: 0.3, metalness: 0.6, side: THREE.DoubleSide,
+      polygonOffset: true, polygonOffsetFactor: -(GROOVES + 4), polygonOffsetUnits: -(GROOVES + 4),
+    })
+  );
+  labelMesh.position.z = Z * (GROOVES + 3);
+  group.add(labelMesh);
+
+  // Trou central
+  const holeMesh = new THREE.Mesh(
+    new THREE.CircleGeometry(innerR * 0.18, 24),
+    new THREE.MeshBasicMaterial({
+      color: new THREE.Color(0x04040d), side: THREE.DoubleSide,
+      polygonOffset: true, polygonOffsetFactor: -(GROOVES + 5), polygonOffsetUnits: -(GROOVES + 5),
+    })
+  );
+  holeMesh.position.z = Z * (GROOVES + 4);
+  group.add(holeMesh);
+
+  // Bord néon
+  const edgeMesh = new THREE.Mesh(
+    new THREE.RingGeometry(outerR * 0.975, outerR, 96),
+    new THREE.MeshBasicMaterial({
+      color: col, side: THREE.DoubleSide, transparent: true, opacity: 0.7,
+      depthWrite: false, polygonOffset: true,
+      polygonOffsetFactor: -(GROOVES + 6), polygonOffsetUnits: -(GROOVES + 6),
+    })
+  );
+  edgeMesh.position.z = Z * (GROOVES + 5);
+  group.add(edgeMesh);
+
+  return group;
+}
 
 // ── CRYSTAL PLANET GEOMETRY ──
 // Crée une sphère low-poly dont chaque face est déplacée
@@ -223,105 +298,99 @@ function makeCrystalMat(col) {
   });
 }
 
-// ── VINYL DISC ──
-function makeVinylDisc(outerR, col, tiltX, tiltZ) {
+// ── SIMPLE RING (vue galaxie — performant) ──
+function makeSimpleRing(radius, col, tiltX, tiltZ) {
   const group = new THREE.Group();
   group.rotation.x = tiltX;
   group.rotation.z = tiltZ;
 
-  const GROOVES     = 9;
-  const innerR      = outerR * 0.18;
-  const grooveStart = innerR * 1.6;
-  const grooveEnd   = outerR * 0.96;
-  const Z           = 0.001;
-
-  // Corps principal — face avant
-  const bodyMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0x080810), emissive: col.clone().multiplyScalar(0.04),
-    roughness: 0.05, metalness: 0.95, side: THREE.FrontSide,
-    transparent: true, opacity: 0.88, depthWrite: true,
-    polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
-  });
-  group.add(new THREE.Mesh(new THREE.RingGeometry(innerR * 0.5, outerR, 128), bodyMat));
-  // Face arrière identique (miroir)
-  const bodyBack = new THREE.Mesh(new THREE.RingGeometry(innerR * 0.5, outerR, 128), bodyMat.clone());
-  bodyBack.rotation.y = Math.PI;
-  group.add(bodyBack);
-
-  // Sillons concentriques
-  for (let g = 0; g < GROOVES; g++) {
-    const t = g / (GROOVES - 1);
-    const gr = grooveStart + t * (grooveEnd - grooveStart);
-    const mesh = new THREE.Mesh(
-      new THREE.RingGeometry(gr - outerR * 0.006, gr + outerR * 0.006, 128),
-      new THREE.MeshBasicMaterial({
-        color: col.clone().offsetHSL(t * 0.15, 0.1, 0),
-        side: THREE.DoubleSide, transparent: true, opacity: 0.55 + t * 0.3,
-        depthWrite: false, polygonOffset: true,
-        polygonOffsetFactor: -(g + 2), polygonOffsetUnits: -(g + 2),
-      })
-    );
-    mesh.position.z = Z * (g + 1);
-    group.add(mesh);
-  }
-
-  // Reflets
-  for (let arc = 0; arc < 2; arc++) {
-    const arcR = grooveStart + (grooveEnd - grooveStart) * (0.3 + arc * 0.4);
-    const mesh = new THREE.Mesh(
-      new THREE.RingGeometry(arcR, arcR + outerR * 0.025, 128, 1, Math.PI * (0.15 + arc * 0.3), Math.PI * 0.4),
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color(1, 1, 1), side: THREE.DoubleSide,
-        transparent: true, opacity: 0.12, depthWrite: false,
-        polygonOffset: true, polygonOffsetFactor: -(GROOVES + arc + 2), polygonOffsetUnits: -(GROOVES + arc + 2),
-      })
-    );
-    mesh.position.z = Z * (GROOVES + arc + 1);
-    group.add(mesh);
-  }
-
-  // Label central — même couleur recto/verso
-  const labelMat = new THREE.MeshStandardMaterial({
-    color: col.clone().multiplyScalar(0.5), emissive: col.clone().multiplyScalar(0.35),
-    roughness: 0.3, metalness: 0.6, side: THREE.FrontSide,
-    polygonOffset: true, polygonOffsetFactor: -(GROOVES + 4), polygonOffsetUnits: -(GROOVES + 4),
-  });
-  const labelMesh = new THREE.Mesh(new THREE.CircleGeometry(innerR, 64), labelMat);
-  labelMesh.position.z = Z * (GROOVES + 3);
-  group.add(labelMesh);
-  const labelBack = new THREE.Mesh(new THREE.CircleGeometry(innerR, 64), labelMat.clone());
-  labelBack.position.z = -Z * (GROOVES + 3);
-  labelBack.rotation.y = Math.PI;
-  group.add(labelBack);
-
-  // Trou central
-  const holeMesh = new THREE.Mesh(
-    new THREE.CircleGeometry(innerR * 0.18, 32),
+  // Corps du disque
+  group.add(new THREE.Mesh(
+    new THREE.RingGeometry(radius * 0.5, radius, 64),
     new THREE.MeshBasicMaterial({
-      color: new THREE.Color(0x04040d), side: THREE.DoubleSide, depthWrite: true,
-      polygonOffset: true, polygonOffsetFactor: -(GROOVES + 5), polygonOffsetUnits: -(GROOVES + 5),
+      color:       col.clone().multiplyScalar(0.4),
+      side:        THREE.DoubleSide,
+      transparent: true,
+      opacity:     0.75,
+      depthWrite:  false,
     })
-  );
-  holeMesh.position.z = Z * (GROOVES + 4);
-  group.add(holeMesh);
+  ));
 
-  // Bord extérieur
-  const edgeMesh = new THREE.Mesh(
-    new THREE.RingGeometry(outerR * 0.975, outerR, 128),
+  // Bord lumineux
+  group.add(new THREE.Mesh(
+    new THREE.RingGeometry(radius * 0.92, radius, 64),
     new THREE.MeshBasicMaterial({
-      color: col, side: THREE.DoubleSide, transparent: true, opacity: 0.7,
-      depthWrite: false, polygonOffset: true,
-      polygonOffsetFactor: -(GROOVES + 6), polygonOffsetUnits: -(GROOVES + 6),
+      color:       col,
+      side:        THREE.DoubleSide,
+      transparent: true,
+      opacity:     0.85,
+      depthWrite:  false,
     })
-  );
-  edgeMesh.position.z = Z * (GROOVES + 5);
-  group.add(edgeMesh);
+  ));
 
   return group;
 }
 
-MUSIC_DATA.forEach((artist, i) => {
-  const planetR = 1.2 + (artist.trackCount / 133) * 3.2;
+// ── IRIDESCENT TORUS RING (vue artiste uniquement) ──
+function makeIridescentRing(radius, tubeR, col, tiltX, tiltZ) {
+  const group = new THREE.Group();
+  group.rotation.x = tiltX;
+  group.rotation.z = tiltZ;
+
+  // Couche 1 — corps principal semi-transparent
+  group.add(new THREE.Mesh(
+    new THREE.TorusGeometry(radius, tubeR, 32, 128),
+    new THREE.MeshStandardMaterial({
+      color:       col.clone().multiplyScalar(0.4),
+      emissive:    col.clone().multiplyScalar(0.1),
+      roughness:   0.08,
+      metalness:   0.6,
+      transparent: true,
+      opacity:     0.55,
+      side:        THREE.DoubleSide,
+    })
+  ));
+
+  // Couche 2 — iridescence arc-en-ciel (couleurs décalées HSL)
+  const iriColors = [0, 0.08, 0.16, 0.28, 0.45, 0.6, 0.75];
+  iriColors.forEach((hShift, idx) => {
+    const iriCol = col.clone().offsetHSL(hShift, 0.3, 0.15);
+    group.add(new THREE.Mesh(
+      new THREE.TorusGeometry(radius, tubeR * 0.82, 16, 128),
+      new THREE.MeshStandardMaterial({
+        color:       iriCol,
+        emissive:    iriCol.clone().multiplyScalar(0.25),
+        roughness:   0.05,
+        metalness:   0.9,
+        transparent: true,
+        opacity:     0.12,
+        side:        THREE.DoubleSide,
+        depthWrite:  false,
+      })
+    ));
+  });
+
+  // Couche 3 — reflet blanc
+  group.add(new THREE.Mesh(
+    new THREE.TorusGeometry(radius, tubeR * 0.35, 16, 128),
+    new THREE.MeshStandardMaterial({
+      color:       new THREE.Color(1, 1, 1),
+      roughness:   0.0,
+      metalness:   1.0,
+      transparent: true,
+      opacity:     0.18,
+      side:        THREE.DoubleSide,
+      depthWrite:  false,
+    })
+  ));
+
+  return group;
+}
+
+GALAXY_DATA.forEach((artist, i) => {
+  // Taille normalisée sur le max de la bibliothèque visible
+  const maxTracks = GALAXY_DATA[0].trackCount; // trié par trackCount desc
+  const planetR = 1.4 + (artist.trackCount / maxTracks) * 3.0;
   const col     = new THREE.Color(artist.color);
 
   // ── Crystal planet — segments=3 + extrusion plus marquée ──
@@ -340,17 +409,14 @@ MUSIC_DATA.forEach((artist, i) => {
   sphere.add(wire);
   planetWires.push(wire);
 
-  // ── Outer glow shell ──
-  const glowGeo = new THREE.SphereGeometry(planetR * 1.35, 16, 16);
+  // ── Outer glow shell — segments réduits ──
+  const glowGeo = new THREE.SphereGeometry(planetR * 1.35, 8, 8);
   const glowMat = new THREE.MeshBasicMaterial({
-    color: col,
-    transparent: true,
-    opacity: 0.04,
-    side: THREE.BackSide,
+    color: col, transparent: true, opacity: 0.04, side: THREE.BackSide,
   });
   sphere.add(new THREE.Mesh(glowGeo, glowMat));
 
-  // ── Vinyle cyberpunk (disque avec sillons) ──
+  // ── Vinyle cyberpunk ──
   const ringTiltX = Math.PI * 0.5 + (Math.random() - 0.5) * 0.35;
   const ringTiltZ = (Math.random() - 0.5) * 0.35;
   sphere.add(makeVinylDisc(planetR * 2.0, col, ringTiltX, ringTiltZ));
@@ -418,7 +484,7 @@ function enterArtist(artist) {
     new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.035, side: THREE.BackSide })
   ));
 
-  // Disques vinyle cyberpunk à angles variés
+  // Disques vinyle en vue artiste
   const vinylCount = 2 + Math.floor(Math.random() * 2);
   for (let v = 0; v < vinylCount; v++) {
     const tiltX = Math.PI * 0.08 + v * Math.PI * 0.22 + (Math.random() - 0.5) * 0.2;
@@ -446,10 +512,10 @@ function enterArtist(artist) {
   const artistBeadTex = makeStarTexture(artist.color);
   artistTrackPoints = new THREE.Points(tGeo, new THREE.PointsMaterial({
     map:          artistBeadTex,
-    size:         2.2,
+    size:         1.4,
     vertexColors: true,
     transparent:  true,
-    opacity:      0.95,
+    opacity:      0.92,
     sizeAttenuation: true,
     depthWrite:   false,
     alphaTest:    0.01,
@@ -567,7 +633,7 @@ function showTooltip(data, mx, my) {
   document.getElementById('tt-sig').textContent  = `SIG:${data.track.length.toString(16).toUpperCase().padStart(4,'0')}`;
   document.getElementById('tt-artist').textContent = data.artist;
   document.getElementById('tt-track').textContent  = data.track;
-  document.getElementById('tt-album').textContent  = data.album + (data.year ? ` · ${data.year}` : '') + ' ↗ YouTube';
+  document.getElementById('tt-album').textContent  = data.album + (data.year ? ` · ${data.year}` : '');
 
   const osc   = document.getElementById('tt-osc');
   const waves = buildWaveParams(data.track);
@@ -657,15 +723,6 @@ canvas.addEventListener('mouseleave', () => { isDragging = false; hideTooltip();
 canvas.addEventListener('click', () => {
   if (isDragging) return;
   raycaster.setFromCamera(mouse, camera);
-  if (mode === 'artist' && artistTrackPoints) {
-    const hits = raycaster.intersectObject(artistTrackPoints);
-    if (hits.length > 0 && artistTrackData[hits[0].index]) {
-      const d = artistTrackData[hits[0].index];
-      const q = encodeURIComponent(`${d.artist} ${d.track}`);
-      window.open(`https://www.youtube.com/results?search_query=${q}`, '_blank');
-      return;
-    }
-  }
   if (mode === 'galaxy') {
     const hits = raycaster.intersectObjects(planetMeshes, false);
     if (hits.length > 0) enterArtist(hits[0].object.userData.artist);

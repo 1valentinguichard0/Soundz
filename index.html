@@ -1663,6 +1663,17 @@ body::before {
     </div>
     <div class="modal-body">
 
+      <!-- Bandeau galaxie existante — visible si connecté avec galaxie sauvegardée -->
+      <div id="existing-galaxy-banner" style="display:none;margin-bottom:16px;padding:14px 16px;background:rgba(0,207,255,0.06);border:1px solid rgba(0,207,255,0.3);display:none;align-items:center;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:0.16em;color:var(--cyan);text-transform:uppercase;margin-bottom:3px;">// Galaxie sauvegardée</div>
+          <div id="existing-galaxy-info" style="font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:0.08em;color:rgba(232,224,255,0.6);"></div>
+        </div>
+        <button onclick="launchExistingGalaxy()" style="flex-shrink:0;padding:9px 18px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.1em;background:var(--cyan);color:#06040F;border:none;cursor:pointer;white-space:nowrap;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);">
+          ◎ &nbsp; Voir ma galaxie
+        </button>
+      </div>
+
       <div class="import-options">
         <div class="import-option" onclick="selectService('apple')" id="opt-apple">
           <div class="opt-service">Apple Music</div>
@@ -1684,10 +1695,7 @@ body::before {
           <div class="opt-format">Fichier .csv via Soundiiz</div>
           <div class="opt-badge violet">TIERS</div>
         </div>
-        <div class="import-option mine" onclick="selectService('mine')" id="opt-mine" style="display:none;">
-          <div class="opt-service">Utiliser ma bibliothèque ✦</div>
-          <div class="opt-format">data.js déjà chargé · 325 artistes · 8 326 titres</div>
-        </div>
+
       </div>
 
       <div class="import-instructions" id="instr-apple">
@@ -1758,6 +1766,43 @@ let parsedData      = null;
 
 function openModal() {
   document.getElementById('import-modal').classList.add('open');
+  // Vérifier si une galaxie existe en Supabase
+  checkExistingGalaxy();
+}
+
+async function checkExistingGalaxy() {
+  if (!currentUser) return;
+  try {
+    const { data } = await _sb
+      .from('galaxies')
+      .select('artist_count, track_count, service, updated_at, data')
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+
+    if (data) {
+      const updated = new Date(data.updated_at).toLocaleDateString('fr-FR', {
+        day: 'numeric', month: 'long', year: 'numeric'
+      });
+      document.getElementById('existing-galaxy-info').textContent =
+        data.artist_count + ' artistes · ' + data.track_count.toLocaleString('fr-FR') + ' titres · ' + (data.service||'').toUpperCase() + ' · ' + updated;
+      document.getElementById('existing-galaxy-banner').style.display = 'flex';
+      // Stocker les données pour le lancement direct
+      window._existingGalaxyData = data;
+    }
+  } catch(e) { console.warn('checkExistingGalaxy:', e); }
+}
+
+function launchExistingGalaxy() {
+  if (!window._existingGalaxyData) return;
+  const g = window._existingGalaxyData;
+  try {
+    sessionStorage.setItem('sgv_data', JSON.stringify(g.data));
+    sessionStorage.setItem('sgv_source', g.service || 'import');
+  } catch(e) {
+    const trim = g.data.slice(0,150).map(a=>({...a,tracks:a.tracks.slice(0,30)}));
+    sessionStorage.setItem('sgv_data', JSON.stringify(trim));
+  }
+  doTransition();
 }
 function closeModal() {
   document.getElementById('import-modal').classList.remove('open');
@@ -1776,7 +1821,7 @@ function selectService(svc) {
   setStatus('');
   setBtnReady(false);
 
-  ['apple','spotify','deezer','soundcloud','mine'].forEach(s => {
+  ['apple','spotify','deezer','soundcloud'].forEach(s => {
     document.getElementById('opt-' + s).classList.toggle('active', s === svc);
   });
   ['apple','spotify','deezer','soundcloud'].forEach(s => {
@@ -1793,9 +1838,7 @@ function selectService(svc) {
   parsedData = null;
   document.getElementById('dz-filename').textContent = '';
 
-  if (svc === 'mine') {
-    setStatus('// Bibliothèque data.js prête · 325 artistes · 8 326 titres', 'ok');
-    setBtnReady(true);
+  if (false) { // mine option removed
   } else {
     dz.classList.add('show');
     browse.style.display = 'block';
@@ -1966,7 +2009,7 @@ function splitCSV(line, sep = ',') {
 
 function buildArtistArray(artistMap) {
   const sorted = Object.entries(artistMap)
-    .filter(([,v]) => v.tracks.length >= 3)
+    .filter(([,v]) => v.tracks.length >= 1)
     .sort((a,b) => b[1].tracks.length - a[1].tracks.length);
 
   return sorted.map(([name, data], i) => ({
@@ -1981,38 +2024,50 @@ function buildArtistArray(artistMap) {
 
 // ── LAUNCH ──
 async function launchGalaxy() {
-  if (selectedService === 'mine') {
-    doTransition();
-    return;
-  }
+
   if (!parsedData || !parsedData.length) return;
 
   // Stocker dans sessionStorage pour galaxy.html
-  const dataToStore = parsedData.slice(0, 300).map(a => ({...a, tracks: a.tracks.slice(0, 100)}));
+  // Stocker TOUS les artistes dans sessionStorage
+  const dataToStore = parsedData.map(a => ({...a, tracks: a.tracks.slice(0, 100)}));
   try {
     sessionStorage.setItem('sgv_data', JSON.stringify(dataToStore));
   } catch(e) {
-    const trimmed = parsedData.slice(0, 150).map(a => ({...a, tracks: a.tracks.slice(0, 30)}));
-    sessionStorage.setItem('sgv_data', JSON.stringify(trimmed));
+    // Si trop lourd, tronquer progressivement
+    try {
+      const t = parsedData.map(a => ({...a, tracks: a.tracks.slice(0, 30)}));
+      sessionStorage.setItem('sgv_data', JSON.stringify(t));
+    } catch(e2) {
+      const t = parsedData.slice(0, 500).map(a => ({...a, tracks: a.tracks.slice(0, 10)}));
+      sessionStorage.setItem('sgv_data', JSON.stringify(t));
+    }
   }
   sessionStorage.setItem('sgv_source', selectedService);
 
   // Sauvegarder dans Supabase si connecté
+  // Forcer la récupération de la session si currentUser pas encore défini
+  if (!currentUser) {
+    const { data: { session } } = await _sb.auth.getSession();
+    if (session) currentUser = session.user;
+  }
+
   if (currentUser) {
     const totalTracks = parsedData.reduce((s,a) => s + a.trackCount, 0);
-    try {
-      await _sb.from('galaxies').upsert({
-        user_id:      currentUser.id,
-        data:         dataToStore,
-        service:      selectedService,
-        artist_count: parsedData.length,
-        track_count:  totalTracks,
-        is_public:    true,
-        updated_at:   new Date().toISOString(),
-      }, { onConflict: 'user_id' });
+    const { data: upsertData, error: upsertError } = await _sb.from('galaxies').upsert({
+      user_id:      currentUser.id,
+      data:         dataToStore,
+      service:      selectedService,
+      artist_count: parsedData.length,
+      track_count:  totalTracks,
+      is_public:    true,
+      updated_at:   new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+    console.log('Upsert result:', JSON.stringify({ data: upsertData, error: upsertError }));
+    if (upsertError) {
+      console.error('Supabase error:', upsertError);
+      setStatus('// Erreur sauvegarde : ' + upsertError.message, 'err');
+    } else {
       setStatus('// ✓ Galaxie sauvegardée · ' + parsedData.length + ' artistes', 'ok');
-    } catch(e) {
-      console.warn('Sauvegarde Supabase échouée:', e);
     }
   }
 
@@ -2126,19 +2181,14 @@ function setUserConnected(user) {
   document.getElementById('nav-auth-in').style.display  = 'flex';
   document.getElementById('nav-username').textContent   = '// ' + username.toUpperCase();
 
-  // Afficher "Ma bibliothèque" seulement pour Valz
-  if (username.toLowerCase() === 'valz') {
-    document.getElementById('opt-mine').style.display = 'block';
-  } else {
-    document.getElementById('opt-mine').style.display = 'none';
-  }
+
 }
 
 function setUserDisconnected() {
   currentUser = null;
   document.getElementById('nav-auth-out').style.display = 'flex';
   document.getElementById('nav-auth-in').style.display  = 'none';
-  document.getElementById('opt-mine').style.display = 'none';
+
 }
 
 
