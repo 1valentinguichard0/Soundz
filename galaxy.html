@@ -7,12 +7,39 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style-galaxy.css">
+<style>
+/* ── PAGE TRANSITION OVERLAY ── */
+#page-overlay {
+  position: fixed; inset: 0;
+  background: #04040d;
+  z-index: 99999;
+  pointer-events: none;
+  opacity: 1; /* commence opaque, fade-out au load */
+  transition: opacity 0.6s ease;
+}
+
+/* ── LOADING STATE sur l'overlay ── */
+#overlay-status {
+  position: absolute;
+  bottom: 40px; left: 50%; transform: translateX(-50%);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; letter-spacing: 0.2em;
+  color: rgba(0,255,159,0.4);
+  white-space: nowrap;
+  animation: blink-status 1s step-end infinite;
+}
+@keyframes blink-status { 0%,100%{opacity:1} 50%{opacity:0.2} }
+</style>
 </head>
 <body>
 
+<!-- Overlay de transition — visible au départ, disparaît quand tout est prêt -->
+<div id="page-overlay">
+  <div id="overlay-status">// CHARGEMENT DE LA GALAXIE…</div>
+</div>
+
 <div class="scanline"></div>
 <div id="cursor"><div id="cursor-inner"></div></div>
-<div id="entry-overlay"></div>
 
 <div id="ui">
 
@@ -41,17 +68,21 @@
         <div class="stat-lbl">TITRES</div>
       </div>
       <div class="stat-sep">//</div>
-      <a href="explore.html" style="font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(0,255,159,0.4);text-decoration:none;transition:color .15s;white-space:nowrap;padding:0;" onmouseover="this.style.color='#00ff9f'" onmouseout="this.style.color='rgba(0,255,159,0.4)'">EXPLORER</a>
+      <a href="explore.html"
+        onclick="navigateOut(event, 'explore.html')"
+        style="font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(0,255,159,0.4);text-decoration:none;transition:color .15s;white-space:nowrap;padding:0;"
+        onmouseover="this.style.color='#00ff9f'" onmouseout="this.style.color='rgba(0,255,159,0.4)'">EXPLORER</a>
       <div class="stat-sep">//</div>
-      <a href="index.html" style="font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(0,255,159,0.4);text-decoration:none;transition:color .15s;white-space:nowrap;padding:0;" onmouseover="this.style.color='#00ff9f'" onmouseout="this.style.color='rgba(0,255,159,0.4)'">⌂</a>
+      <a href="index.html"
+        onclick="navigateOut(event, 'index.html')"
+        style="font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(0,255,159,0.4);text-decoration:none;transition:color .15s;white-space:nowrap;padding:0;"
+        onmouseover="this.style.color='#00ff9f'" onmouseout="this.style.color='rgba(0,255,159,0.4)'">⌂</a>
     </div>
   </header>
 
   <button id="back-btn" onclick="backToGalaxy()">
     <span class="btn-bracket">[</span> ← GALAXIE <span class="btn-bracket">]</span>
   </button>
-
-
 
   <div id="artist-panel">
     <div id="artist-panel-inner">
@@ -88,16 +119,50 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// ── NAVIGATION AVEC TRANSITION ──
+const pageOverlay = document.getElementById('page-overlay');
+
+function revealPage() {
+  // Appelé quand les données sont prêtes et Three.js a rendu au moins 1 frame
+  pageOverlay.style.opacity = '0';
+  setTimeout(() => { pageOverlay.style.pointerEvents = 'none'; }, 650);
+}
+
+function navigateOut(e, url) {
+  e.preventDefault();
+  pageOverlay.style.pointerEvents = 'all';
+  pageOverlay.style.opacity = '1';
+  document.getElementById('overlay-status').textContent = '// NAVIGATION…';
+  setTimeout(() => { window.location.href = url; }, 550);
+}
+
+// Bouton retour profil — on détecte si on vient d'un profil public
+function goBack() {
+  const ref = document.referrer;
+  if (ref && ref.includes('profile.html')) {
+    navigateOut({ preventDefault: () => {} }, ref);
+  } else {
+    navigateOut({ preventDefault: () => {} }, 'index.html');
+  }
+}
+
+// ── CHARGEMENT DONNÉES ──
 (async function() {
 
   const SUPABASE_URL = 'https://wsdpaxkjaykxuzexzjqp.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzZHBheGtqYXlreHV6ZXh6anFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2ODA3NzMsImV4cCI6MjA4OTI1Njc3M30.ZH8gM25abDmP2Mf0zFNBJvf6EU2uIH4Lb-2-kpdlR7I';
 
   function loadMain() {
-    var s = document.createElement('script');
+    const s = document.createElement('script');
     s.src = 'main.js';
+    // main.js appellera window.onGalaxyReady() quand le premier frame est rendu
     document.body.appendChild(s);
   }
+
+  // Signal que main.js peut appeler pour déclencher le reveal
+  window.onGalaxyReady = function() {
+    revealPage();
+  };
 
   // ── 1. Données en session (import tout frais) ──
   const raw = sessionStorage.getItem('sgv_data');
@@ -116,11 +181,12 @@
   const { data: { session } } = await _sb.auth.getSession();
 
   if (!session) {
-    window.location.href = 'index.html';
+    navigateOut({ preventDefault: () => {} }, 'index.html');
     return;
   }
 
   // ── 3. Charger depuis Supabase ──
+  document.getElementById('overlay-status').textContent = '// SYNCHRO SUPABASE…';
   const { data: galaxyRow } = await _sb
     .from('galaxies')
     .select('data')
@@ -131,17 +197,10 @@
     window.MUSIC_DATA = galaxyRow.data;
     loadMain();
   } else {
-    window.location.href = 'index.html';
+    navigateOut({ preventDefault: () => {} }, 'index.html');
   }
 
 })();
-</script>
-<script>
-window.addEventListener('load', () => {
-  const o = document.getElementById('entry-overlay');
-  o.style.opacity = '0';
-  setTimeout(() => { o.style.display = 'none'; }, 700);
-});
 </script>
 </body>
 </html>

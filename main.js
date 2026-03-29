@@ -69,6 +69,7 @@ artistGroup.visible = false;
 
 const raycaster = new THREE.Raycaster();
 raycaster.params.Points = { threshold: 1.2 };
+let _galaxyRevealed = false;
 
 // ── STATS ──
 const totalArtists = MUSIC_DATA.length;
@@ -795,6 +796,10 @@ function animate() {
   }
 
   renderer.render(scene, camera);
+  if (!_galaxyRevealed) {
+    _galaxyRevealed = true;
+    if (typeof window.onGalaxyReady === 'function') window.onGalaxyReady();
+  }
 }
 
 animate();

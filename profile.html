@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SOUNDZ — Mon Profil</title>
+<title>SOUNDZ — Profil</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:ital,wght@0,300;0,400;0,700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -24,6 +24,18 @@ body::before {
   background: repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px);
   pointer-events: none; z-index: 9998;
 }
+
+/* ── PAGE TRANSITION OVERLAY ── */
+#page-overlay {
+  position: fixed; inset: 0;
+  background: #06040F;
+  z-index: 99999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+#page-overlay.fade-in  { opacity: 1; pointer-events: all; }
+#page-overlay.fade-out { opacity: 0; }
 
 /* ── NAV ── */
 nav {
@@ -99,13 +111,11 @@ main { max-width: 900px; margin: 0 auto; padding: 60px 40px; }
 .profile-info { display: flex; flex-direction: column; gap: 4px; }
 .profile-username {
   font-family: var(--display); font-size: 40px;
-  letter-spacing: 0.06em; line-height: 1;
-  color: var(--white);
+  letter-spacing: 0.06em; line-height: 1; color: var(--white);
 }
 .profile-meta {
   font-family: var(--mono); font-size: 9px;
-  letter-spacing: 0.14em; color: rgba(232,224,255,0.3);
-  text-transform: uppercase;
+  letter-spacing: 0.14em; color: rgba(232,224,255,0.3); text-transform: uppercase;
 }
 .profile-actions { display: flex; flex-direction: column; gap: 8px; }
 
@@ -130,23 +140,41 @@ main { max-width: 900px; margin: 0 auto; padding: 60px 40px; }
   letter-spacing: 0.14em; color: rgba(232,224,255,0.25);
   text-align: center; padding: 20px 0;
 }
-.galaxy-loaded {
-  display: none;
-}
+.galaxy-loaded { display: none; }
 .galaxy-stats { display: flex; gap: 32px; margin-bottom: 20px; }
 .gs-item { display: flex; flex-direction: column; gap: 3px; }
 .gs-val { font-family: var(--mono); font-size: 20px; color: var(--white); }
 .gs-lbl { font-family: var(--mono); font-size: 8px; letter-spacing: 0.14em; color: rgba(232,224,255,0.3); text-transform: uppercase; }
 
+/* ── LAUNCH BUTTON ── */
 .btn-galaxy-launch {
   display: inline-flex; align-items: center; gap: 10px;
   padding: 12px 24px; font-family: var(--display); font-size: 18px;
   letter-spacing: 0.1em; background: linear-gradient(135deg, var(--violet), var(--indigo));
   color: var(--white); border: none; cursor: pointer; text-decoration: none;
   clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0% calc(100% - 8px), 0% 8px);
-  transition: opacity .15s;
+  transition: opacity .15s, transform .15s;
+  position: relative; overflow: hidden;
 }
-.btn-galaxy-launch:hover { opacity: 0.85; }
+.btn-galaxy-launch::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent);
+  opacity: 0; transition: opacity .2s;
+}
+.btn-galaxy-launch:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-galaxy-launch:hover::after { opacity: 1; }
+.btn-galaxy-launch:active { transform: translateY(0); opacity: 1; }
+
+/* Scanning bar animation on the button */
+@keyframes scan-btn {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+.btn-galaxy-launch.loading::before {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 0;
+  width: 25%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  animation: scan-btn 1s linear infinite;
+}
 
 .btn-import {
   display: inline-flex; align-items: center; gap: 8px;
@@ -156,15 +184,6 @@ main { max-width: 900px; margin: 0 auto; padding: 60px 40px; }
   color: rgba(232,224,255,0.6); cursor: pointer; transition: .15s;
 }
 .btn-import:hover { border-color: var(--violet); color: var(--white); }
-
-/* Service badge */
-.svc-badge {
-  display: inline-block; font-family: var(--mono); font-size: 8px;
-  letter-spacing: 0.12em; text-transform: uppercase;
-  padding: 3px 9px; border: 1px solid rgba(0,207,255,0.3);
-  color: var(--cyan); background: rgba(0,207,255,0.08);
-  margin-top: 8px;
-}
 
 /* ── FOLLOW BUTTON ── */
 .btn-follow {
@@ -184,6 +203,9 @@ main { max-width: 900px; margin: 0 auto; padding: 60px 40px; }
 </head>
 <body>
 
+<!-- Overlay de transition -->
+<div id="page-overlay"></div>
+
 <nav>
   <a href="index.html" class="nav-logo">SOUNDZ</a>
   <div class="nav-right">
@@ -196,19 +218,16 @@ main { max-width: 900px; margin: 0 auto; padding: 60px 40px; }
 
 <main>
 
-  <!-- Chargement -->
   <div id="loading">
     <div class="loading-text">// Chargement du profil…</div>
   </div>
 
-  <!-- Non connecté -->
   <div id="not-logged">
     <div class="nl-title">ACCÈS RESTREINT</div>
     <div class="nl-sub">// Connecte-toi pour voir ton profil</div>
     <a href="index.html" class="nl-btn">◎ &nbsp; Retour à l'accueil</a>
   </div>
 
-  <!-- Profil connecté -->
   <div id="profile-content">
 
     <div class="profile-header">
@@ -233,8 +252,8 @@ main { max-width: 900px; margin: 0 auto; padding: 60px 40px; }
       </div>
     </div>
 
-    <!-- Ma Galaxie -->
-    <p class="section-label">// Ma Galaxie</p>
+    <!-- Label dynamique : "Sa Galaxie" ou "Ma Galaxie" -->
+    <p class="section-label" id="galaxy-section-label">// Ma Galaxie</p>
     <div class="galaxy-block">
       <div class="galaxy-empty" id="galaxy-empty">
         // Aucune galaxie générée — importe ta bibliothèque musicale
@@ -246,11 +265,12 @@ main { max-width: 900px; margin: 0 auto; padding: 60px 40px; }
           <div class="gs-item"><span class="gs-val" id="gs-service">—</span><span class="gs-lbl">Service</span></div>
         </div>
         <div id="galaxy-updated" style="font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:0.12em;color:rgba(232,224,255,0.25);margin:8px 0 16px;"></div>
-        <button id="btn-launch-galaxy" class="btn-galaxy-launch">◎ &nbsp; Explorer ma galaxie</button>
+        <!-- Texte du bouton mis à jour dynamiquement -->
+        <button id="btn-launch-galaxy" class="btn-galaxy-launch">◎ &nbsp; <span id="btn-launch-label">Explorer ma galaxie</span></button>
       </div>
     </div>
 
-    <p class="section-label">// Partager</p>
+    <p class="section-label" id="share-section-label">// Partager</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
       <button class="btn-import" id="btn-share" onclick="shareGalaxy()">
         ↗ &nbsp; Copier le lien de ma galaxie
@@ -261,9 +281,9 @@ main { max-width: 900px; margin: 0 auto; padding: 60px 40px; }
     </div>
     <div id="share-status" style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:0.12em;color:#00ff9f;margin-top:8px;min-height:16px;"></div>
 
-    <p class="section-label" style="margin-top:28px;">// Importer une bibliothèque</p>
+    <p class="section-label" style="margin-top:28px;" id="import-section-label">// Importer une bibliothèque</p>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <button class="btn-import" onclick="window.location.href='index.html'">
+      <button class="btn-import" onclick="navigateTo('index.html')">
         ⊕ &nbsp; Importer / Mettre à jour
       </button>
     </div>
@@ -281,8 +301,52 @@ const _sb = createClient(
 
 const COLORS = ['#7B2FFF','#00CFFF','#BF00FF','#D85A30','#1D9E75','#FF2D78','#EF9F27'];
 
+// ─────────────────────────────────────────────
+// TRANSITIONS
+// ─────────────────────────────────────────────
+const overlay = document.getElementById('page-overlay');
+
+// Fade-in à l'arrivée sur la page
+window.addEventListener('DOMContentLoaded', () => {
+  overlay.style.opacity = '1';
+  overlay.style.transition = 'none';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      overlay.style.transition = 'opacity 0.5s ease';
+      overlay.style.opacity = '0';
+    });
+  });
+});
+
+// Navigation avec fade-out avant de partir
+function navigateTo(url) {
+  overlay.style.opacity = '1';
+  setTimeout(() => { window.location.href = url; }, 500);
+}
+
+// Transition vers galaxy.html avec animation "scanning" sur le bouton
+function launchGalaxy(data, service) {
+  const btn = document.getElementById('btn-launch-galaxy');
+  btn.classList.add('loading');
+
+  // Stocker les données
+  try {
+    sessionStorage.setItem('sgv_data', JSON.stringify(data));
+    sessionStorage.setItem('sgv_source', service || 'import');
+  } catch(e) {
+    const trim = data.slice(0, 150).map(a => ({ ...a, tracks: a.tracks.slice(0, 30) }));
+    sessionStorage.setItem('sgv_data', JSON.stringify(trim));
+  }
+
+  // Fade-out puis navigate
+  overlay.style.opacity = '1';
+  setTimeout(() => { window.location.href = 'galaxy.html'; }, 500);
+}
+
+// ─────────────────────────────────────────────
+// PROFIL PUBLIC
+// ─────────────────────────────────────────────
 async function loadPublicProfile(username) {
-  // Charger le profil depuis Supabase via username
   const { data: profile } = await _sb
     .from('profiles')
     .select('id, username, avatar_color')
@@ -290,20 +354,28 @@ async function loadPublicProfile(username) {
     .single();
 
   if (!profile) {
-    document.getElementById('profile-content').innerHTML = '<p style="font-family:var(--mono);color:rgba(232,224,255,0.3);padding:40px;font-size:11px;letter-spacing:0.14em">// PROFIL INTROUVABLE</p>';
+    document.getElementById('profile-content').innerHTML =
+      '<p style="font-family:var(--mono);color:rgba(232,224,255,0.3);padding:40px;font-size:11px;letter-spacing:0.14em">// PROFIL INTROUVABLE</p>';
     return;
   }
 
-  const color  = profile.avatar_color || COLORS[username.charCodeAt(0) % COLORS.length];
-  const color2 = COLORS[(COLORS.indexOf(color)+1) % COLORS.length];
-  const initials = username.slice(0,2).toUpperCase();
+  const color    = profile.avatar_color || COLORS[username.charCodeAt(0) % COLORS.length];
+  const color2   = COLORS[(COLORS.indexOf(color) + 1) % COLORS.length];
+  const initials = username.slice(0, 2).toUpperCase();
 
   document.getElementById('profile-avatar').textContent = initials;
   document.getElementById('profile-avatar').style.background = `linear-gradient(135deg,${color},${color2})`;
   document.getElementById('profile-username').textContent = username.toUpperCase();
   document.getElementById('profile-meta').textContent = '// Profil public';
 
-  // Galaxie
+  // ── Textes adaptés au profil public ──
+  document.getElementById('galaxy-section-label').textContent = `// La Galaxie de ${username.toUpperCase()}`;
+  document.getElementById('btn-launch-label').textContent = 'Voir la galaxie';
+  // Cacher les sections propres au propriétaire
+  document.getElementById('share-section-label').style.display = 'none';
+  document.getElementById('import-section-label').style.display = 'none';
+
+  // Galaxie publique
   const { data: galaxyRow } = await _sb
     .from('galaxies')
     .select('artist_count, track_count, service, data, updated_at')
@@ -319,35 +391,34 @@ async function loadPublicProfile(username) {
     document.getElementById('galaxy-updated').textContent = '// Mise à jour le ' + updated;
 
     document.getElementById('btn-launch-galaxy').addEventListener('click', () => {
-      try { sessionStorage.setItem('sgv_data', JSON.stringify(galaxyRow.data)); }
-      catch(e) {
-        const trim = galaxyRow.data.slice(0,150).map(a=>({...a,tracks:a.tracks.slice(0,30)}));
-        sessionStorage.setItem('sgv_data', JSON.stringify(trim));
-      }
-      sessionStorage.setItem('sgv_source', galaxyRow.service || 'import');
-      window.location.href = 'galaxy.html';
+      launchGalaxy(galaxyRow.data, galaxyRow.service);
     });
 
     document.getElementById('galaxy-empty').style.display  = 'none';
     document.getElementById('galaxy-loaded').style.display = 'block';
+  } else {
+    document.getElementById('galaxy-empty').textContent = '// Cette galaxie est privée ou n\'existe pas encore';
   }
 
-  // Follow data
+  // Follow
   const { data: { session } } = await _sb.auth.getSession();
   _profileUserId = profile.id;
   await loadFollowData(profile.id, session?.user?.id, false);
 
-  // Cacher boutons import/partage (profil public)
-  document.querySelectorAll('.btn-import, #btn-share, #btn-toggle-public').forEach(el => {
+  // Cacher boutons import/partage
+  document.querySelectorAll('#btn-share, #btn-toggle-public, #btn-import').forEach(el => {
     if (el) el.style.display = 'none';
   });
+  document.querySelectorAll('.btn-import').forEach(el => { el.style.display = 'none'; });
 }
 
+// ─────────────────────────────────────────────
+// FOLLOW
+// ─────────────────────────────────────────────
 let _profileUserId = null;
-let _isFollowing = false;
+let _isFollowing   = false;
 
 async function loadFollowData(profileUserId, currentUserId, isOwnProfile) {
-  // Compter abonnés et abonnements
   const [followersRes, followingRes] = await Promise.all([
     _sb.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', profileUserId),
     _sb.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', profileUserId)
@@ -362,7 +433,6 @@ async function loadFollowData(profileUserId, currentUserId, isOwnProfile) {
     return;
   }
 
-  // Vérifier si déjà suivi
   if (currentUserId) {
     const { data } = await _sb.from('follows')
       .select('*').eq('follower_id', currentUserId).eq('following_id', profileUserId).maybeSingle();
@@ -376,8 +446,8 @@ async function loadFollowData(profileUserId, currentUserId, isOwnProfile) {
 
 async function toggleFollow() {
   const { data: { session } } = await _sb.auth.getSession();
-  if (!session) { window.location.href = 'index.html'; return; }
-  const btn = document.getElementById('btn-follow');
+  if (!session) { navigateTo('index.html'); return; }
+  const btn     = document.getElementById('btn-follow');
   const countEl = document.getElementById('followers-count');
   let count = parseInt(countEl.textContent) || 0;
 
@@ -397,11 +467,14 @@ async function toggleFollow() {
   }
 }
 
+// ─────────────────────────────────────────────
+// PARTAGE & PUBLIC
+// ─────────────────────────────────────────────
 function shareGalaxy() {
   const username = document.getElementById('profile-username')?.textContent?.toLowerCase().trim();
   if (!username) return;
   const base = window.location.href.split('profile.html')[0];
-  const url = `${base}profile.html?user=${encodeURIComponent(username)}`;
+  const url  = `${base}profile.html?user=${encodeURIComponent(username)}`;
   navigator.clipboard.writeText(url).then(() => {
     document.getElementById('share-status').textContent = '// ✓ Lien copié dans le presse-papier';
     setTimeout(() => { document.getElementById('share-status').textContent = ''; }, 3000);
@@ -414,15 +487,13 @@ async function togglePublic() {
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) return;
   const newVal = !window._isPublic;
-  const { error } = await _sb.from('galaxies')
-    .update({ is_public: newVal })
-    .eq('user_id', session.user.id);
+  const { error } = await _sb.from('galaxies').update({ is_public: newVal }).eq('user_id', session.user.id);
   if (!error) {
     window._isPublic = newVal;
     const btn = document.getElementById('btn-toggle-public');
-    btn.textContent = newVal ? '◉  Galaxie publique' : '○  Galaxie privée';
+    btn.textContent      = newVal ? '◉  Galaxie publique' : '○  Galaxie privée';
     btn.style.borderColor = newVal ? 'rgba(0,255,159,0.4)' : 'rgba(123,47,255,0.4)';
-    btn.style.color = newVal ? 'rgba(0,255,159,0.7)' : 'rgba(232,224,255,0.4)';
+    btn.style.color       = newVal ? 'rgba(0,255,159,0.7)' : 'rgba(232,224,255,0.4)';
     document.getElementById('share-status').textContent = newVal
       ? '// ✓ Galaxie rendue publique — visible dans Explorer'
       : '// ○ Galaxie rendue privée';
@@ -430,14 +501,16 @@ async function togglePublic() {
   }
 }
 
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
 async function init() {
   const { data: { session } } = await _sb.auth.getSession();
-  const urlParams = new URLSearchParams(window.location.search);
+  const urlParams  = new URLSearchParams(window.location.search);
   const targetUser = urlParams.get('user');
 
   document.getElementById('loading').style.display = 'none';
 
-  // Afficher le bouton déconnexion seulement si c'est son propre profil
   const isOwnProfile = !targetUser || (session?.user?.user_metadata?.username === targetUser);
 
   if (session) {
@@ -446,7 +519,7 @@ async function init() {
     if (isOwnProfile) document.getElementById('btn-signout').style.display = 'block';
   }
 
-  // Profil public — pas besoin d'être connecté
+  // ── Profil public ──
   if (targetUser && !isOwnProfile) {
     await loadPublicProfile(targetUser);
     document.getElementById('profile-content').style.display = 'block';
@@ -458,25 +531,27 @@ async function init() {
     return;
   }
 
-  const user = session.user;
+  // ── Mon propre profil ──
+  const user     = session.user;
   const username = user.user_metadata?.username || user.email.split('@')[0];
-  const initials = username.slice(0,2).toUpperCase();
-  const color = COLORS[username.charCodeAt(0) % COLORS.length];
+  const initials = username.slice(0, 2).toUpperCase();
+  const color    = COLORS[username.charCodeAt(0) % COLORS.length];
 
-  // Nav
   document.getElementById('nav-user').textContent = '// ' + username.toUpperCase();
 
-  // Avatar
   const av = document.getElementById('profile-avatar');
   av.textContent = initials;
-  av.style.background = `linear-gradient(135deg, ${color}, ${COLORS[(COLORS.indexOf(color)+1)%COLORS.length]})`;
+  av.style.background = `linear-gradient(135deg, ${color}, ${COLORS[(COLORS.indexOf(color)+1) % COLORS.length]})`;
 
-  // Infos
   document.getElementById('profile-username').textContent = username.toUpperCase();
   document.getElementById('profile-meta').textContent =
     '// Membre depuis ' + new Date(user.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
-  // Charger la galaxie depuis Supabase
+  // Labels propres au propriétaire (déjà par défaut dans le HTML)
+  document.getElementById('galaxy-section-label').textContent = '// Ma Galaxie';
+  document.getElementById('btn-launch-label').textContent = 'Explorer ma galaxie';
+
+  // Charger la galaxie
   const { data: galaxyRow, error: galaxyErr } = await _sb
     .from('galaxies')
     .select('artist_count, track_count, service, data, updated_at')
@@ -490,21 +565,11 @@ async function init() {
     document.getElementById('gs-tracks').textContent  = galaxyRow.track_count.toLocaleString('fr-FR');
     document.getElementById('gs-service').textContent = (galaxyRow.service || 'import').toUpperCase();
 
-    const updated = new Date(galaxyRow.updated_at).toLocaleDateString('fr-FR', {
-      day: 'numeric', month: 'long', year: 'numeric'
-    });
+    const updated = new Date(galaxyRow.updated_at).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
     document.getElementById('galaxy-updated').textContent = '// Mise à jour le ' + updated;
 
-    // Remettre les données en session pour pouvoir relancer la galaxie
     document.getElementById('btn-launch-galaxy').addEventListener('click', () => {
-      try {
-        sessionStorage.setItem('sgv_data', JSON.stringify(galaxyRow.data));
-        sessionStorage.setItem('sgv_source', galaxyRow.service);
-      } catch(e) {
-        const trim = galaxyRow.data.slice(0,150).map(a=>({...a,tracks:a.tracks.slice(0,30)}));
-        sessionStorage.setItem('sgv_data', JSON.stringify(trim));
-      }
-      window.location.href = 'galaxy.html';
+      launchGalaxy(galaxyRow.data, galaxyRow.service);
     });
 
     document.getElementById('galaxy-empty').style.display  = 'none';
@@ -513,32 +578,24 @@ async function init() {
 
   document.getElementById('profile-content').style.display = 'block';
 
-  // Follow stats pour son propre profil
   _profileUserId = user.id;
   await loadFollowData(user.id, user.id, true);
 
-  // Charger état public/privé
+  // État public/privé
   const { data: gData } = await _sb
-    .from('galaxies')
-    .select('is_public')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
+    .from('galaxies').select('is_public').eq('user_id', user.id).maybeSingle();
   if (gData) {
     const btn = document.getElementById('btn-toggle-public');
     if (btn) {
-      btn.textContent = gData.is_public ? '◉  Galaxie publique' : '○  Galaxie privée';
+      btn.textContent       = gData.is_public ? '◉  Galaxie publique' : '○  Galaxie privée';
       btn.style.borderColor = gData.is_public ? 'rgba(0,255,159,0.4)' : 'rgba(123,47,255,0.4)';
-      btn.style.color = gData.is_public ? 'rgba(0,255,159,0.7)' : 'rgba(232,224,255,0.4)';
+      btn.style.color       = gData.is_public ? 'rgba(0,255,159,0.7)' : 'rgba(232,224,255,0.4)';
       window._isPublic = gData.is_public;
     }
   }
 
   // Déconnexion
-  const logout = async () => {
-    await _sb.auth.signOut();
-    window.location.href = 'index.html';
-  };
+  const logout = async () => { await _sb.auth.signOut(); navigateTo('index.html'); };
   document.getElementById('btn-signout').addEventListener('click', logout);
   document.getElementById('btn-signout-2').addEventListener('click', logout);
 }
